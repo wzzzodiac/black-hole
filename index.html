@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#020203">
+  <meta name="description" content="Real-time procedural black hole and gravitational lensing experiment using Three.js and GLSL.">
+  <title>Black Hole // Gravitational Lensing Lab</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23020203%22/><circle cx=%2250%22 cy=%2250%22 r=%2220%22 fill=%22%23000%22/><ellipse cx=%2250%22 cy=%2250%22 rx=%2242%22 ry=%229%22 fill=%22none%22 stroke=%22%23fff2d6%22 stroke-width=%226%22/></svg>">
+  <link rel="stylesheet" href="style.css?v=1.0.0">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">WEBGL // THREE.JS // GLSL // QUESTIONABLE ASTROPHYSICS</p>
+        <h1>Black Hole</h1>
+        <p class="subtitle">Procedural accretion disk, photon ring and fake-but-convincing gravitational lensing. Built as a visual lab first, future existential threat second.</p>
+      </div>
+      <a class="github-link" href="https://github.com/wzzzodiac/black-hole" target="_blank" rel="noreferrer">github ↗</a>
+    </header>
+
+    <section class="lab-grid">
+      <div class="viewport-card">
+        <div class="viewport-head"><span>RENDER TARGET // REAL TIME</span><span id="fpsReadout">GPU: negotiating with reality...</span></div>
+        <div id="scene" class="scene" aria-label="Real-time black hole shader"></div>
+        <div class="viewport-foot"><span>Drag sliders. No textures. No video. Just math making light regret its career choices.</span></div>
+      </div>
+
+      <aside class="controls-card">
+        <p class="panel-label">LENSING PARAMETERS</p>
+
+        <label class="control" for="approach">
+          <span><b>Approach</b><output id="approachValue">42%</output></span>
+          <input id="approach" type="range" min="0" max="100" value="42">
+          <small>Future Space Ship hook: this maps directly to EVENT HORIZON progress.</small>
+        </label>
+
+        <label class="control" for="brightness">
+          <span><b>Disk brightness</b><output id="brightnessValue">1.35×</output></span>
+          <input id="brightness" type="range" min="60" max="220" value="135">
+        </label>
+
+        <label class="control" for="inclination">
+          <span><b>Disk inclination</b><output id="inclinationValue">76°</output></span>
+          <input id="inclination" type="range" min="55" max="86" value="76">
+        </label>
+
+        <label class="control" for="lensing">
+          <span><b>Lensing strength</b><output id="lensingValue">1.00×</output></span>
+          <input id="lensing" type="range" min="50" max="170" value="100">
+        </label>
+
+        <div class="button-grid">
+          <button id="autoButton" type="button" aria-pressed="false">AUTO APPROACH</button>
+          <button id="resetButton" type="button">RESET VIEW</button>
+        </div>
+
+        <div class="telemetry">
+          <div><span>RENDERER</span><strong>THREE.JS / WEBGL</strong></div>
+          <div><span>MATERIAL</span><strong>GLSL SHADER</strong></div>
+          <div><span>TEXTURES</span><strong>0</strong></div>
+          <div><span>BAD IDEAS</span><strong>REAL TIME</strong></div>
+        </div>
+
+        <div class="status-box" id="statusBox">Shader online. Light paths are being approximated irresponsibly.</div>
+      </aside>
+    </section>
+
+    <section class="notes">
+      <div><p class="panel-label">DESIGN TARGET</p><h2>Gargantua energy, browser budget.</h2></div>
+      <p>This is not a physically exact Kerr black-hole simulation. The fragment shader deliberately cheats: it bends procedural stars, projects a turbulent accretion disk, mirrors luminous material around the photon sphere and crushes the center into a clean event horizon. The goal is the visual language of gravitational lensing while remaining fast enough to become the background of <strong>No Hope</strong>.</p>
+    </section>
+
+    <footer><span>BLACK HOLE LAB // V1.0</span><span>Light has filed a formal complaint.</span></footer>
+  </main>
+
+  <script type="module" src="main.js?v=1.0.0"></script>
+</body>
+</html>
