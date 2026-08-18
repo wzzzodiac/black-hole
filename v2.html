@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#020203">
+  <meta name="description" content="WebGPU black-hole geodesic renderer alpha using per-pixel iterative light paths.">
+  <title>Black Hole V2 // WebGPU Geodesic Alpha</title>
+  <link rel="stylesheet" href="style.css?v=1.0.0">
+  <style>
+    .version-nav{display:flex;gap:8px;flex-wrap:wrap}.version-nav a{padding:10px 12px;border:1px solid var(--line);color:var(--muted);text-decoration:none;background:#060608;font-size:12px}.version-nav a:hover{color:var(--accent);border-color:var(--line-strong)}.version-badge{display:inline-block;margin-left:8px;padding:3px 6px;border:1px solid rgba(255,204,128,.35);color:#ffcc80;font-size:10px;letter-spacing:.08em;vertical-align:middle}.v2-scene{cursor:grab}.v2-scene.dragging{cursor:grabbing}.compat-warning{display:none;position:absolute;inset:0;z-index:5;padding:24px;place-content:center;text-align:center;background:#030305;color:var(--text)}.compat-warning.show{display:grid}.compat-warning p{max-width:650px;color:var(--muted);line-height:1.65}.compat-warning a{color:var(--accent)}.quality-note{color:#ffcc80}.controls-card .mini-button{width:100%;margin-top:8px}.source-note{margin-top:10px;color:#706879;font-size:10px;line-height:1.5}.source-note a{color:#a99abb}@media(max-width:680px){.version-nav{width:100%}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">WEBGPU // WGSL // NULL-LIGHT-PATH EXPERIMENT <span class="version-badge">V2 ALPHA</span></p>
+        <h1>Black Hole V2</h1>
+        <p class="subtitle">A browser-native geodesic renderer: each output pixel launches a light ray, integrates its curved path on the GPU, and decides whether it escapes to the stars, crosses the accretion disk, or disappears behind the event horizon.</p>
+      </div>
+      <div class="version-nav"><a href="index.html">← versions</a><a href="v1.html">V1 final</a><a href="https://github.com/wzzzodiac/black-hole" target="_blank" rel="noreferrer">github ↗</a></div>
+    </header>
+
+    <section class="lab-grid">
+      <div class="viewport-card">
+        <div class="viewport-head"><span>WEBGPU COMPUTE TARGET // GEODESIC ALPHA</span><span id="gpuReadout">GPU: requesting adapter...</span></div>
+        <div id="scene" class="scene v2-scene" aria-label="WebGPU black hole geodesic simulation">
+          <div id="compatWarning" class="compat-warning">
+            <div><h2>WebGPU is unavailable.</h2><p>V2 needs a browser/device with WebGPU enabled. V1 remains available and uses WebGL instead.</p><a href="v1.html">Open V1 →</a></div>
+          </div>
+        </div>
+        <div class="viewport-foot"><span>Drag to orbit. Mouse wheel also changes approach. Higher geodesic budgets cost real GPU time.</span></div>
+      </div>
+
+      <aside class="controls-card">
+        <p class="panel-label">GEODESIC PARAMETERS</p>
+
+        <label class="control" for="approach">
+          <span><b>Approach</b><output id="approachValue">22%</output></span>
+          <input id="approach" type="range" min="0" max="100" value="22">
+          <small>Moves the camera from a distant orbit toward the Schwarzschild-radius neighborhood.</small>
+        </label>
+
+        <label class="control" for="inclination">
+          <span><b>Camera elevation</b><output id="inclinationValue">68°</output></span>
+          <input id="inclination" type="range" min="8" max="88" value="68">
+          <small>Changes the viewing geometry instead of manually deforming the disk.</small>
+        </label>
+
+        <label class="control" for="brightness">
+          <span><b>Disk emission</b><output id="brightnessValue">1.10×</output></span>
+          <input id="brightness" type="range" min="55" max="180" value="110">
+        </label>
+
+        <label class="control" for="steps">
+          <span><b>Geodesic budget</b><output id="stepsValue">360</output></span>
+          <input id="steps" type="range" min="160" max="600" step="20" value="360">
+          <small class="quality-note">More steps = cleaner deep bending, but substantially more compute work.</small>
+        </label>
+
+        <div class="button-grid">
+          <button id="resetButton" type="button">RESET CAMERA</button>
+          <button id="renderButton" type="button">REFINE FRAME</button>
+        </div>
+
+        <div class="telemetry">
+          <div><span>BACKEND</span><strong>WEBGPU</strong></div>
+          <div><span>SHADER</span><strong>WGSL COMPUTE</strong></div>
+          <div><span>INTEGRATOR</span><strong>RK4</strong></div>
+          <div><span>MODEL</span><strong>SCHWARZSCHILD-INSPIRED</strong></div>
+        </div>
+
+        <div class="status-box" id="statusBox">Initializing WebGPU and compiling the geodesic kernel...</div>
+        <div class="source-note">Architecture inspired by the public <a href="https://github.com/kavan010/black_hole" target="_blank" rel="noreferrer">kavan010/black_hole</a> project. V2 is an independent browser/WebGPU implementation; no source code from that repository is copied.</div>
+      </aside>
+    </section>
+
+    <section class="notes">
+      <div><p class="panel-label">ALPHA TARGET</p><h2>Physics first. Pretty later.</h2></div>
+      <p>V2 deliberately starts simpler than V1. The important part is the pipeline: per-pixel rays, iterative gravitational bending, event-horizon interception, equatorial-disk crossing and escaped background light. The current kernel uses dimensionless units and a browser-budget Schwarzschild-inspired null-ray equation; it is not yet a research-grade relativistic renderer.</p>
+    </section>
+
+    <footer><span>BLACK HOLE LAB // V2 ALPHA 0.1</span><span>WEBGPU REQUIRED // V1 UNTOUCHED</span></footer>
+  </main>
+
+  <script type="module" src="v2.js?v=alpha-0.1"></script>
+</body>
+</html>

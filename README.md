@@ -1,51 +1,72 @@
 # Black Hole // Gravitational Lensing Lab
 
-Real-time procedural black-hole renderer built with **Three.js + GLSL**.
+A browser black-hole lab with two independent renderers.
 
-The goal is not a physically exact Kerr metric solver. The goal is to reproduce the visual language of a cinematic black hole — dark event horizon, hot turbulent accretion disk, photon ring, gravitationally lensed light and increasing glare — while remaining lightweight enough to run inside a browser and later become the background renderer for **Space Ship // No Hope**.
+## Version 1 — Cinematic / final
 
-## Current renderer
+V1 is the finished **Three.js + GLSL / WebGL** renderer. It deliberately favors cinematic readability over exact relativity.
 
-- Full-screen Three.js `ShaderMaterial`
-- Procedural GLSL star field and dust
-- Turbulent accretion disk with no image textures
-- Warm-to-white temperature gradient
-- Stylized Doppler color asymmetry
-- Photon ring and lensed upper/lower accretion arcs
-- Radial background distortion around the event horizon
-- Nonlinear brightness increase during approach
-- Mobile-aware render resolution
-- Live controls for approach, disk brightness, inclination and lensing strength
-- Auto-approach mode for testing the full visual progression
+- Procedural star field and accretion material
+- Stylized upper/lower gravitationally lensed disk images
+- Event horizon, photon-rim treatment and background distortion
+- Disk brightness and inclination controls
+- Deep approach sequence
+- No image textures
+- Broad WebGL browser compatibility
 
-## Run
+Open `v1.html`, or choose V1 from `index.html`.
 
-This project is static and intended for GitHub Pages. No build step is required.
+## Version 2 — WebGPU geodesic alpha
 
-Files:
+V2 is a separate clean-room **WebGPU + WGSL compute** experiment. Its architecture is inspired by the public [`kavan010/black_hole`](https://github.com/kavan010/black_hole) project: launch one light ray per output pixel, integrate the trajectory on the GPU, test event-horizon capture, test equatorial accretion-disk crossings, and shade escaped rays as background light.
 
-```text
-index.html
-style.css
-main.js
-```
+The upstream project is a native C++17 / OpenGL 4.3 application using GLFW/GLEW and a GLSL compute shader. That code cannot run directly on GitHub Pages/WebGPU. The V2 implementation therefore rewrites the approach independently for the browser in JavaScript + WGSL. No upstream source code is copied into this repository.
 
-`main.js` imports a pinned Three.js ES module from jsDelivr and renders everything procedurally in WebGL.
-
-## Integration target
-
-The `Approach` control is intentionally normalized from `0` to `1` internally. When the renderer is integrated into `space-ship`, that uniform can be driven directly by No Hope's existing event-horizon progress.
-
-The intended architecture is:
+### V2 alpha pipeline
 
 ```text
-WebGL / GLSL layer  -> black hole + lensing + accretion light
-Canvas 2D layer     -> ship + asteroids + collisions + gameplay
-HTML / CSS           -> HUD + controls + collapse interface
+browser camera
+    ↓
+WebGPU compute dispatch
+    ↓
+one invocation per output pixel
+    ↓
+RK4 curved-light-path integration
+    ├─ event horizon → black
+    ├─ equatorial disk crossing → emitted disk color
+    └─ escape → procedural star background
+    ↓
+storage texture
+    ↓
+fullscreen WebGPU presentation pass
 ```
 
-That keeps the current game mechanics independent from the expensive visual layer.
+The alpha uses dimensionless units with `r_s = 1` and a Schwarzschild-inspired null-ray bending equation. It is intentionally lower resolution and lower step count than an offline scientific renderer so it can remain interactive in a browser. It is not yet a research-grade GR solver.
 
-## Technical note
+### V2 controls
 
-This is a stylized renderer, not a scientific simulation of null geodesics around a rotating black hole. Several effects are deliberately approximated because the final target is an interactive browser game, not an astrophysics paper or a render farm having a nervous breakdown.
+- **Approach** — exponentially moves the camera toward the event-horizon neighborhood.
+- **Camera elevation** — changes the actual camera geometry; the disk itself is not manually deformed.
+- **Disk emission** — scales disk radiance.
+- **Geodesic budget** — increases/decreases integration steps per ray.
+- **Drag viewport** — orbit camera around the black hole.
+- **Mouse wheel** — adjust approach.
+- **Refine frame** — forces a higher-step render after interactive movement.
+
+V2 requires a browser/device with WebGPU support. If WebGPU is unavailable, V1 remains usable.
+
+## Files
+
+```text
+index.html     version selector
+v1.html        frozen V1 renderer page
+main-v12.js    V1 renderer
+v2.html        V2 alpha page
+v2.js          WebGPU/WGSL geodesic renderer
+style.css      shared UI styling
+```
+
+## Status
+
+- **V1:** final/frozen.
+- **V2:** alpha 0.1 — architecture and light-path pipeline first; visual refinement comes later.
