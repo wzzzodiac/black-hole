@@ -314,7 +314,7 @@ function cross(a, b) {
 
 function getCamera() {
   const t = Number(controls.approach.value) / 100;
-  const far = 11.5;
+  const far = 17.25;
   const near = 1.32;
   const shaped = Math.pow(t, 1.18);
   const radius = Math.exp(Math.log(far) + (Math.log(near) - Math.log(far)) * shaped);
