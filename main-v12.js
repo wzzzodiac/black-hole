@@ -38,7 +38,7 @@ const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const uniforms = {
   uTime: { value: 0 },
   uResolution: { value: new THREE.Vector2(1, 1) },
-  uApproach: { value: 0.42 },
+  uApproach: { value: 0.0 },
   uBrightness: { value: 0.375 },
   uInclination: { value: 76.0 }
 };
@@ -212,7 +212,10 @@ const fragmentShader = /* glsl */`
     float aspect = uResolution.x / max(uResolution.y, 1.0);
     uv.x *= aspect;
 
-    float zoom = mix(0.62, 1.17, uApproach);
+    // New approach scale: 0% is exactly the old 75% view. From there the curve accelerates
+    // progressively toward a very close event-horizon dive at 100%.
+    float approachCurve = pow(clamp(uApproach, 0.0, 1.0), 1.55);
+    float zoom = mix(1.0325, 4.60, approachCurve);
     vec2 p = uv / zoom;
     p.y += 0.01;
 
@@ -335,7 +338,7 @@ autoButton.addEventListener('click', () => {
 });
 
 resetButton.addEventListener('click', () => {
-  controls.approach.value = '42';
+  controls.approach.value = '0';
   controls.brightness.value = '135';
   controls.inclination.value = '76';
   autoApproach = false;
@@ -358,7 +361,7 @@ renderer.setAnimationLoop(now => {
   if (autoApproach) {
     let value = Number(controls.approach.value) + autoDirection * dt * 8.5;
     if (value >= 100) { value = 100; autoDirection = -1; }
-    if (value <= 8) { value = 8; autoDirection = 1; }
+    if (value <= 0) { value = 0; autoDirection = 1; }
     controls.approach.value = String(value);
     syncControls();
   }
