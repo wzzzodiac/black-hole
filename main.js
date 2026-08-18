@@ -25,7 +25,7 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 } catch (error) {
-  statusBox.textContent = 'WebGL failed to initialize. The black hole has consumed the renderer before launch.';
+  statusBox.textContent = 'WebGL failed to initialize. The black hole ate the renderer before launch.';
   throw error;
 }
 
@@ -100,39 +100,46 @@ const fragmentShader = /* glsl */`
     return exp(-(x * x) / max(0.00001, width * width));
   }
 
-  float starLayer(vec2 p, float scale, float threshold) {
+  mat2 rotation(float a) {
+    float c = cos(a), s = sin(a);
+    return mat2(c, -s, s, c);
+  }
+
+  float starLayer(vec2 p, float scale, float threshold, float size) {
     vec2 g = p * scale;
     vec2 cell = floor(g);
     vec2 f = fract(g) - 0.5;
     float h = hash21(cell);
     vec2 offset = vec2(hash21(cell + 4.7), hash21(cell + 9.2)) - 0.5;
     float d = length(f - offset * 0.62);
-    float point = 1.0 - smoothstep(0.012, 0.068, d);
+    float point = 1.0 - smoothstep(size * 0.35, size, d);
     point *= smoothstep(threshold, 1.0, h);
-    float twinkle = 0.74 + 0.26 * sin(uTime * (1.0 + h * 2.4) + h * 44.0);
-    return point * twinkle;
+    return point * (0.72 + 0.28 * sin(uTime * (0.8 + h * 2.5) + h * 39.0));
   }
 
   vec3 starField(vec2 p) {
     float s = 0.0;
-    s += starLayer(p + vec2(0.17, 0.03), 42.0, 0.975) * 0.72;
-    s += starLayer(p * 1.31 - vec2(0.23, 0.14), 73.0, 0.986) * 0.94;
-    s += starLayer(p * 1.73 + vec2(0.05, 0.31), 115.0, 0.993) * 1.18;
-    vec3 col = vec3(0.74, 0.82, 0.96) * s;
-    float dust = fbm(p * 1.5 + 30.0);
-    col += vec3(0.035, 0.045, 0.068) * smoothstep(0.55, 0.91, dust) * 0.58;
+    s += starLayer(p + vec2(0.11, 0.03), 27.0, 0.935, 0.080) * 0.42;
+    s += starLayer(p * 1.17 - vec2(0.23, 0.14), 48.0, 0.955, 0.072) * 0.62;
+    s += starLayer(p * 1.41 + vec2(0.05, 0.31), 81.0, 0.972, 0.064) * 0.86;
+    s += starLayer(p * 1.79 - vec2(0.41, 0.18), 124.0, 0.985, 0.056) * 1.08;
+    vec3 col = vec3(0.75, 0.84, 1.0) * s;
+    float dust = fbm(p * 1.23 + 30.0);
+    col += vec3(0.025, 0.032, 0.052) * smoothstep(0.54, 0.90, dust) * 0.52;
     return col;
   }
 
   vec3 diskPalette(float heat, float doppler) {
-    vec3 ember = vec3(0.50, 0.105, 0.018);
-    vec3 amber = vec3(1.00, 0.39, 0.07);
-    vec3 cream = vec3(1.00, 0.80, 0.55);
-    vec3 whiteHot = vec3(1.0, 0.985, 0.94);
-    vec3 c = mix(ember, amber, smoothstep(0.02, 0.44, heat));
-    c = mix(c, cream, smoothstep(0.34, 0.74, heat));
-    c = mix(c, whiteHot, smoothstep(0.70, 1.0, heat));
-    c *= mix(vec3(1.12, 0.73, 0.53), vec3(0.74, 0.90, 1.13), doppler);
+    vec3 rust = vec3(0.40, 0.065, 0.012);
+    vec3 ember = vec3(0.88, 0.24, 0.035);
+    vec3 amber = vec3(1.00, 0.55, 0.16);
+    vec3 cream = vec3(1.00, 0.87, 0.67);
+    vec3 whiteHot = vec3(1.0, 0.99, 0.96);
+    vec3 c = mix(rust, ember, smoothstep(0.03, 0.30, heat));
+    c = mix(c, amber, smoothstep(0.25, 0.55, heat));
+    c = mix(c, cream, smoothstep(0.48, 0.80, heat));
+    c = mix(c, whiteHot, smoothstep(0.76, 1.0, heat));
+    c *= mix(vec3(1.10, 0.76, 0.60), vec3(0.79, 0.91, 1.10), doppler);
     return c;
   }
 
@@ -140,64 +147,52 @@ const fragmentShader = /* glsl */`
     vec2 q = vec2(p.x, p.y / thickness);
     float r = length(q);
     float ang = atan(q.y, q.x);
-
-    float inner = smoothstep(0.34, 0.40, r);
-    float outer = 1.0 - smoothstep(1.02, 1.34, r);
+    float inner = smoothstep(0.33, 0.40, r);
+    float outer = 1.0 - smoothstep(1.04, 1.36, r);
     float band = inner * outer;
 
-    float spin = uTime * 0.42;
-    float flow = fbm(vec2(ang * 3.2 + spin, r * 9.2 - spin * 1.7));
-    float streak = fbm(vec2(ang * 11.0 - spin * 2.8, r * 26.0 + flow * 2.7));
-    float fine = noise(vec2(ang * 39.0 + spin * 4.7, r * 78.0));
-    float turbulence = clamp(flow * 0.58 + streak * 0.31 + fine * 0.15, 0.0, 1.0);
-
-    float innerHeat = 1.0 - smoothstep(0.36, 1.11, r);
-    float filament = smoothstep(0.22, 0.82, turbulence);
-    float gaps = 0.48 + 0.52 * smoothstep(0.16, 0.78, streak);
-    float alpha = band * (0.30 + 1.08 * filament) * gaps;
+    float spin = uTime * 0.44;
+    float flow = fbm(vec2(ang * 3.3 + spin, r * 9.0 - spin * 1.7));
+    float streak = fbm(vec2(ang * 12.0 - spin * 2.9, r * 27.0 + flow * 2.6));
+    float fine = noise(vec2(ang * 44.0 + spin * 4.8, r * 84.0));
+    float turbulence = clamp(flow * 0.58 + streak * 0.30 + fine * 0.16, 0.0, 1.0);
+    float innerHeat = 1.0 - smoothstep(0.36, 1.10, r);
+    float alpha = band * (0.28 + 1.04 * smoothstep(0.20, 0.82, turbulence));
+    alpha *= 0.50 + 0.50 * smoothstep(0.14, 0.80, streak);
 
     float doppler = smoothstep(-1.0, 1.0, q.x / max(r, 0.001));
-    float hot = clamp(innerHeat * 0.90 + turbulence * 0.38, 0.0, 1.0);
+    float hot = clamp(innerHeat * 0.92 + turbulence * 0.36, 0.0, 1.0);
     vec3 col = diskPalette(hot, doppler);
-    col *= (0.48 + 1.85 * innerHeat + 0.74 * turbulence) * uBrightness;
-
+    col *= (0.42 + 1.92 * innerHeat + 0.70 * turbulence) * uBrightness;
     return vec4(col, clamp(alpha, 0.0, 1.0));
   }
 
-  vec3 lensedDiskShell(vec2 p, float horizon, float thickness) {
-    float r = length(p);
-    float theta = atan(p.y, p.x);
-    float lens = clamp(uLens, 0.0, 1.8);
+  vec3 wrappedDisk(vec2 p, float horizon, float thickness, float tilt) {
     vec3 col = vec3(0.0);
+    vec2 q = rotation(-tilt) * p;
 
-    // Behind the black hole, the accretion disk is gravitationally imaged upward and downward.
-    // These are not full circular rings: they are compressed copies of the disk that hug the shadow.
-    float xNorm = clamp(abs(p.x) / (horizon * 2.35), 0.0, 1.0);
-    float arch = sqrt(max(0.0, 1.0 - xNorm * xNorm));
-    float upperY = horizon * (1.04 + 0.78 * arch * lens);
-    float lowerY = -horizon * (1.03 + 0.54 * arch * lens);
+    float xExtent = horizon * 2.55;
+    float xNorm = clamp(abs(q.x) / xExtent, 0.0, 1.0);
+    float dome = sqrt(max(0.0, 1.0 - xNorm * xNorm));
 
-    float upperBand = gaussian(p.y - upperY, 0.020 + 0.018 * (1.0 - xNorm));
-    float lowerBand = gaussian(p.y - lowerY, 0.017 + 0.015 * (1.0 - xNorm));
-    float sideMask = 1.0 - smoothstep(horizon * 2.15, horizon * 2.75, abs(p.x));
+    float upperY = horizon * (1.00 + dome * 1.10);
+    float lowerY = -horizon * (1.00 + dome * 0.78);
+    float upperW = 0.026 + 0.030 * dome;
+    float lowerW = 0.022 + 0.024 * dome;
 
-    float streamU = p.x * 4.8 + uTime * 0.38;
-    float streamUpper = fbm(vec2(streamU, p.y * 18.0 + 4.0));
-    float streamLower = fbm(vec2(streamU * 1.08 - 5.0, p.y * 20.0 - 2.0));
+    float upper = gaussian(q.y - upperY, upperW);
+    float lower = gaussian(q.y - lowerY, lowerW);
+    float sideMask = 1.0 - smoothstep(xExtent * 0.82, xExtent, abs(q.x));
 
-    float doppler = smoothstep(-horizon * 2.2, horizon * 2.2, p.x);
-    vec3 hot = diskPalette(0.90 + 0.10 * streamUpper, doppler);
-    vec3 warm = diskPalette(0.82 + 0.14 * streamLower, doppler);
+    float stream = q.x * 5.6 + uTime * 0.40;
+    float nu = fbm(vec2(stream, q.y * 20.0 + 2.0));
+    float nl = fbm(vec2(stream * 1.08 - 3.7, q.y * 22.0 - 3.0));
+    float doppler = smoothstep(-xExtent, xExtent, q.x);
 
-    col += hot * upperBand * sideMask * (0.80 + 0.65 * streamUpper) * (1.15 + lens * 0.52) * uBrightness;
-    col += warm * lowerBand * sideMask * (0.58 + 0.50 * streamLower) * (0.78 + lens * 0.34) * uBrightness;
-
-    // Photon-orbit glow is intentionally broken into arcs instead of a clean Saturn-like ring.
-    float photonR = horizon * (1.075 + 0.035 * lens);
-    float photon = gaussian(r - photonR, 0.0065);
-    float verticalBias = 0.28 + 0.72 * pow(abs(sin(theta)), 1.45);
-    float breakup = 0.52 + 0.48 * fbm(vec2(theta * 6.0 + uTime * 0.18, r * 41.0));
-    col += vec3(1.0, 0.94, 0.83) * photon * verticalBias * breakup * (1.7 + uApproach * 2.0) * uBrightness;
+    vec3 upperCol = diskPalette(0.88 + 0.12 * nu, doppler);
+    vec3 lowerCol = diskPalette(0.80 + 0.18 * nl, doppler);
+    col += upperCol * upper * sideMask * (0.72 + 0.74 * nu) * uBrightness * 1.18;
+    col += lowerCol * lower * sideMask * (0.54 + 0.58 * nl) * uBrightness * 0.92;
 
     return col;
   }
@@ -207,79 +202,60 @@ const fragmentShader = /* glsl */`
     float aspect = uResolution.x / max(uResolution.y, 1.0);
     uv.x *= aspect;
 
-    // More breathing room at the beginning; approach zooms the object toward the player later.
-    float zoom = mix(0.64, 1.19, uApproach);
+    float zoom = mix(0.61, 1.16, uApproach);
     vec2 p = uv / zoom;
-    p.y += 0.015;
+    p.y += 0.018;
 
     float horizon = 0.205;
     float r = length(p);
-    vec2 dir = normalize(p + vec2(0.0001));
-
-    // Stronger gravitational warping of the background. Near the photon sphere stars get
-    // stretched tangentially, creating a visible "gravity field" without drawing fake force lines.
-    float lens = clamp(uLens, 0.0, 1.8);
-    float gravity = lens * horizon * horizon / (r * r + horizon * horizon * 0.30);
-    float bend = (0.072 * lens) / (r * r + 0.040);
-    vec2 tangent = vec2(-dir.y, dir.x);
-    vec2 bent = p + dir * bend;
-    bent += tangent * sin(atan(p.y, p.x) * 2.0 + uTime * 0.025) * gravity * 0.050;
-
-    vec3 col = vec3(0.0010, 0.0014, 0.0023);
-    col += starField(bent * 1.08);
-
-    // Star smear around the lens: displaced samples give a tiny gravitational arc effect.
-    float smearMask = smoothstep(horizon * 3.5, horizon * 1.10, r) * (1.0 - smoothstep(horizon * 0.98, horizon * 1.05, r));
-    vec3 smearA = starField((bent + tangent * gravity * 0.055) * 1.08);
-    vec3 smearB = starField((bent - tangent * gravity * 0.055) * 1.08);
-    col += (smearA + smearB) * 0.22 * smearMask;
-
-    float nebula = fbm(bent * 0.76 + vec2(-4.2, 8.7));
-    col += vec3(0.026, 0.032, 0.050) * smoothstep(0.56, 0.91, nebula) * (1.0 - smoothstep(0.75, 1.75, r));
 
     float inclNorm = clamp((uInclination - 55.0) / 31.0, 0.0, 1.0);
-    float thickness = mix(0.31, 0.090, inclNorm);
+    float thickness = mix(0.32, 0.095, inclNorm);
+    float tilt = mix(-0.085, 0.045, inclNorm);
+    vec2 dp = rotation(-tilt) * p;
 
-    // Main accretion plane: wide, turbulent and visually massive.
-    vec4 disk = diskMaterial(p, thickness);
-    col += disk.rgb * disk.a * 0.90;
+    vec3 col = vec3(0.0007, 0.0010, 0.0018);
+    col += starField(p * 0.98) * 1.28;
 
-    // The disk seen behind the black hole is bent over and under the shadow by gravity.
-    col += lensedDiskShell(p, horizon, thickness);
+    float nebula = fbm(p * 0.70 + vec2(-4.2, 8.7));
+    col += vec3(0.022, 0.027, 0.045) * smoothstep(0.56, 0.92, nebula) * 0.48;
 
-    // Broad warm halo sells scale while keeping the center absolutely black.
-    float hotHalo = gaussian(r - horizon * 1.27, 0.043);
-    float wideHalo = gaussian(r - horizon * 1.56, 0.18);
-    col += vec3(1.0, 0.78, 0.54) * hotHalo * (0.12 + 0.42 * uApproach) * uBrightness;
-    col += vec3(0.46, 0.52, 0.72) * wideHalo * (0.024 + 0.09 * uApproach) * uBrightness;
+    vec4 backDisk = diskMaterial(dp, thickness);
+    col += backDisk.rgb * backDisk.a * 0.72;
 
-    // Absolute event horizon. It occludes the rear disk and the distorted star field.
+    // One coherent disk: the rear half is imaged over and under the shadow.
+    col += wrappedDisk(p, horizon, thickness, tilt);
+
+    float halo = gaussian(r - horizon * 1.34, 0.070);
+    col += vec3(1.0, 0.80, 0.58) * halo * (0.12 + 0.28 * uApproach) * uBrightness;
+
     float horizonMask = 1.0 - smoothstep(horizon * 0.985, horizon * 1.018, r);
     col *= 1.0 - horizonMask;
 
-    // Foreground half of the accretion disk crosses in front of the shadow.
-    vec4 frontDisk = diskMaterial(p, thickness);
-    float foreground = 1.0 - smoothstep(-0.030, 0.075, p.y);
-    float horizonFrontCut = 1.0 - horizonMask * smoothstep(-0.045, 0.028, p.y);
-    frontDisk.a *= foreground * horizonFrontCut;
-    col += frontDisk.rgb * frontDisk.a * 1.02;
+    // Front half of the same tilted disk crosses the lower face of the shadow.
+    vec4 frontDisk = diskMaterial(dp, thickness);
+    float foreground = 1.0 - smoothstep(-0.018, 0.070, dp.y);
+    frontDisk.a *= foreground;
+    col += frontDisk.rgb * frontDisk.a * 1.06;
 
-    // A narrow rim remains visible mostly where the lensed disk rises above/below the shadow.
-    float rim = gaussian(r - horizon * 1.018, 0.0048);
-    float rimMask = 0.14 + 0.86 * pow(abs(p.y) / max(r, 0.001), 1.9);
-    col += vec3(1.0, 0.94, 0.84) * rim * rimMask * (1.2 + uApproach * 1.9) * uBrightness;
+    // Put the black center back on top except where the foreground disk naturally covers its lower edge.
+    float topShadow = horizonMask * smoothstep(-0.020, 0.055, dp.y);
+    col *= 1.0 - topShadow;
 
-    // Late approach becomes increasingly hostile: space itself blooms around the lens.
-    float approachGlare = pow(uApproach, 3.10);
-    float planeGlow = gaussian(p.y, 0.14 + 0.065 * uApproach) * (1.0 - smoothstep(0.18, 1.65, abs(p.x)));
-    float lensGlow = gaussian(r - horizon * 1.45, 0.28);
-    col += vec3(1.0, 0.88, 0.70) * planeGlow * approachGlare * 0.31 * uBrightness;
-    col += vec3(0.78, 0.84, 1.0) * lensGlow * approachGlare * 0.075;
+    // Thin, broken photon rim. No full white Saturn ring.
+    float theta = atan(p.y, p.x);
+    float rim = gaussian(r - horizon * 1.014, 0.0045);
+    float rimMask = 0.10 + 0.90 * pow(abs(sin(theta)), 2.2);
+    float breakup = 0.50 + 0.50 * fbm(vec2(theta * 5.5 + uTime * 0.12, r * 43.0));
+    col += vec3(1.0, 0.94, 0.84) * rim * rimMask * breakup * (0.72 + uApproach * 1.3) * uBrightness;
 
-    // Filmic compression and deep-space falloff.
-    col = 1.0 - exp(-col * 1.24);
-    float vignette = 1.0 - smoothstep(0.58, 1.62, length(uv * vec2(0.72, 1.0)));
-    col *= 0.67 + 0.33 * vignette;
+    float approachGlare = pow(uApproach, 3.2);
+    float planeGlow = gaussian(dp.y, 0.13 + 0.055 * uApproach) * (1.0 - smoothstep(0.20, 1.70, abs(dp.x)));
+    col += vec3(1.0, 0.88, 0.70) * planeGlow * approachGlare * 0.26 * uBrightness;
+
+    col = 1.0 - exp(-col * 1.22);
+    float vignette = 1.0 - smoothstep(0.62, 1.72, length(uv * vec2(0.68, 1.0)));
+    col *= 0.72 + 0.28 * vignette;
     col = pow(max(col, 0.0), vec3(0.87));
 
     gl_FragColor = vec4(col, 1.0);
@@ -330,7 +306,7 @@ autoButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', String(autoApproach));
   autoButton.textContent = autoApproach ? 'AUTO: RUNNING' : 'AUTO APPROACH';
   statusBox.textContent = autoApproach
-    ? 'Auto approach active. Space-time has started making increasingly questionable geometry decisions.'
+    ? 'Auto approach active. The disk is now wrapping around the shadow like physics intended.'
     : 'Auto approach stopped. Reality has been paused for parameter tuning.';
 });
 
@@ -344,7 +320,7 @@ resetButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', 'false');
   autoButton.textContent = 'AUTO APPROACH';
   syncControls();
-  statusBox.textContent = 'Reference view restored. The accretion disk is once again abusing geometry professionally.';
+  statusBox.textContent = 'Reference view restored. The black hole is back to professionally bullying photons.';
 });
 
 let frameCounter = 0;
