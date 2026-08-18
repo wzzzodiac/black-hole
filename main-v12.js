@@ -189,6 +189,12 @@ const fragmentShader = /* glsl */`
     float sideBridge = gauss(p.y, mix(0.090, 0.030, dome)) * join;
     float mask = max(profile * (1.0 - join * 0.35), sideBridge * 0.72);
 
+    // The old clamped xn kept sideBridge alive forever after xSpan.
+    // Fade the complete bent projection out at the same x edge as the visible horizontal disk.
+    float diskEdge = 1.02;
+    float sideCutoff = 1.0 - smoothstep(diskEdge * 0.94, diskEdge, abs(p.x));
+    mask *= sideCutoff;
+
     // Map the curved image back to approximate source coordinates on the original disk.
     float sourceY = (p.y - centerY) / max(width, 0.001) * 0.13;
     float sourceX = p.x / max(xSpan, 0.001) * 1.18;
