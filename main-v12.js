@@ -41,7 +41,7 @@ const uniforms = {
   uTime: { value: 0 },
   uResolution: { value: new THREE.Vector2(1, 1) },
   uApproach: { value: 0.42 },
-  uBrightness: { value: 0.675 },
+  uBrightness: { value: 0.375 },
   uInclination: { value: 76.0 },
   uLens: { value: 1.0 }
 };
@@ -292,12 +292,14 @@ resize();
 
 function syncControls() {
   uniforms.uApproach.value = Number(controls.approach.value) / 100;
-  uniforms.uBrightness.value = Number(controls.brightness.value) / 200;
+  // Visual scale stays 0.60x–2.20x, but the actual shader intensity is remapped:
+  // new 2.20x = old 0.80x, while the new low end reaches 0 for darker options.
+  uniforms.uBrightness.value = Math.max(0, (Number(controls.brightness.value) - 60) / 200);
   uniforms.uInclination.value = Number(controls.inclination.value);
   uniforms.uLens.value = Number(controls.lensing.value) / 100;
 
   outputs.approach.textContent = `${controls.approach.value}%`;
-  outputs.brightness.textContent = `${uniforms.uBrightness.value.toFixed(2)}×`;
+  outputs.brightness.textContent = `${(Number(controls.brightness.value) / 100).toFixed(2)}×`;
   outputs.inclination.textContent = `${controls.inclination.value}°`;
   outputs.lensing.textContent = `${uniforms.uLens.value.toFixed(2)}×`;
 }
