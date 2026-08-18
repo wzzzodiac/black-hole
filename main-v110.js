@@ -117,14 +117,12 @@ const fragmentShader = /* glsl */`
     return col;
   }
 
-  // Texture restored from the earlier v1.4 look the reference screenshot used.
   vec3 diskColor(float heat, float xSide) {
     vec3 ember = vec3(0.34, 0.055, 0.010);
     vec3 rust = vec3(0.88, 0.22, 0.035);
     vec3 gold = vec3(1.00, 0.57, 0.19);
     vec3 cream = vec3(1.00, 0.87, 0.66);
     vec3 whiteHot = vec3(1.0, 0.99, 0.965);
-
     vec3 c = mix(ember, rust, smoothstep(0.04, 0.32, heat));
     c = mix(c, gold, smoothstep(0.24, 0.56, heat));
     c = mix(c, cream, smoothstep(0.48, 0.79, heat));
@@ -139,11 +137,9 @@ const fragmentShader = /* glsl */`
     float streak = fbm(vec2(stream * 11.7 - spin * 2.55, radius * 27.5 + flow * 2.55));
     float fine = noise(vec2(stream * 40.0 + spin * 4.25, radius * 84.0));
     float turb = clamp(flow * 0.56 + streak * 0.34 + fine * 0.15, 0.0, 1.0);
-
     float heat = clamp((1.0 - smoothstep(0.34, 1.14, radius)) * 0.88 + turb * 0.34, 0.0, 1.0);
     float density = 0.68 + 0.78 * smoothstep(0.12, 0.82, turb);
     density *= 0.78 + 0.44 * smoothstep(0.10, 0.78, streak);
-
     vec3 col = diskColor(heat, xSide);
     col *= (0.62 + 1.78 * heat + 0.78 * turb) * uBrightness;
     return vec4(col, clamp(mask * density, 0.0, 1.0));
@@ -180,12 +176,13 @@ const fragmentShader = /* glsl */`
     float mask = max(core * radialFade, connector * 0.88);
     mask = max(mask, inner * dense * 0.88);
     mask = max(mask, second * dense * 0.58);
-
-    float sourceRadius = clamp(mix(1.08, 0.31, pull) + abs(d) / max(width, 0.001) * 0.010, 0.28, 1.10);
+    float sourceRadius = clamp(mix(1.00, 0.44, pull) + abs(d) / max(width, 0.001) * 0.010, 0.38, 1.06);
     float direction = p.x < 0.0 ? -1.0 : 1.0;
     float sourceAngle = direction * mix(0.08, 1.68, pull) + p.x * 0.50 + signY * d * 1.24;
     float xSide = smoothstep(-xSpan, xSpan, p.x);
-    return diskSample(sourceRadius, sourceAngle, xSide, mask);
+    vec4 c = diskSample(sourceRadius, sourceAngle, xSide, mask);
+    c.a = max(c.a, clamp(mask * 0.92, 0.0, 1.0));
+    return c;
   }
 
   vec3 gradeCinematic(vec3 col, vec2 uv, vec2 p, float horizon) {
@@ -210,7 +207,6 @@ const fragmentShader = /* glsl */`
     float zoom = mix(0.62, 1.17, uApproach);
     vec2 p = uv / zoom;
     p.y += 0.01;
-
     float horizon = 0.205;
     float r = length(p);
     float incl = clamp((uInclination - 55.0) / 31.0, 0.0, 1.0);
@@ -228,41 +224,35 @@ const fragmentShader = /* glsl */`
     vec4 lower = pulledRearDisk(p, horizon, incl, 0.0);
     col += upper.rgb * upper.a;
     col += lower.rgb * lower.a;
-
     vec4 plane = accretionPlane(p, thickness);
     col += plane.rgb * plane.a * 1.12;
 
     float shadow = 1.0 - smoothstep(horizon * 0.988, horizon * 1.014, r);
     col *= 1.0 - shadow;
-
     vec4 front = accretionPlane(p, thickness);
     front.a *= 1.0 - smoothstep(-0.075, 0.075, p.y);
     col += front.rgb * front.a * 1.20;
-
     float upperShadow = shadow * smoothstep(-0.038, 0.052, p.y);
     col *= 1.0 - upperShadow;
 
-    // Same directional reflection as v1.11, now roughly three times thicker.
     float theta = atan(p.y, p.x);
     float orbitNoise = fbm(vec2(theta * 8.0 - uTime * 0.16, r * 72.0));
-    float photonRadius = horizon * (1.017 + (orbitNoise - 0.5) * 0.0035);
+    float photonRadius = horizon * (1.020 + (orbitNoise - 0.5) * 0.0035);
     float qStart = smoothstep(-1.72, -1.42, theta);
     float qEnd = 1.0 - smoothstep(-0.10, 0.12, theta);
     float brightQuarter = qStart * qEnd;
     float angularWave = 0.5 + 0.5 * sin(theta * 2.0 - 0.35);
-    float thicknessVar = mix(0.0084, 0.0120, angularWave);
-    thicknessVar = mix(thicknessVar, 0.0204, brightQuarter);
+    float thicknessVar = mix(0.0105, 0.0150, angularWave);
+    thicknessVar = mix(thicknessVar, 0.0255, brightQuarter);
     float photonLine = gauss(r - photonRadius, thicknessVar);
-    float photonShimmer = 0.62 + 0.38 * (0.5 + 0.5 * sin(theta * 3.0 - uTime * 0.30 + orbitNoise * 4.0));
-    float reflection = mix(0.62 + 0.38 * angularWave, 1.35, brightQuarter);
-    col += vec3(1.0, 0.91, 0.72) * photonLine * photonShimmer * reflection * (0.48 + 0.24 * uLens) * uBrightness;
-
-    float photonFringe = gauss(r - photonRadius * 1.012, thicknessVar * 1.85);
-    col += vec3(1.0, 0.50, 0.18) * photonFringe * 0.10 * reflection * uBrightness;
+    float photonShimmer = 0.70 + 0.30 * (0.5 + 0.5 * sin(theta * 3.0 - uTime * 0.30 + orbitNoise * 4.0));
+    float reflection = mix(0.74 + 0.26 * angularWave, 1.48, brightQuarter);
+    col += vec3(1.0, 0.97, 0.90) * photonLine * photonShimmer * reflection * (0.58 + 0.28 * uLens) * uBrightness;
+    float photonFringe = gauss(r - photonRadius * 1.018, thicknessVar * 1.45);
+    col += vec3(1.0, 0.55, 0.22) * photonFringe * 0.11 * reflection * uBrightness;
 
     float innerGlow = gauss(r - horizon * 1.22, 0.060);
     col += vec3(0.78, 0.36, 0.14) * innerGlow * (0.028 + 0.080 * uApproach) * uBrightness;
-
     col = gradeCinematic(col, uv, p, horizon);
     gl_FragColor = vec4(col, 1.0);
   }
@@ -302,7 +292,7 @@ autoButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', String(autoApproach));
   autoButton.textContent = autoApproach ? 'AUTO: RUNNING' : 'AUTO APPROACH';
   statusBox.textContent = autoApproach
-    ? 'Auto approach active. Vintage texture restored; photon rim has been promoted to management.'
+    ? 'Auto approach active. The wrapped disk finally remembered it is the same disk.'
     : 'Auto approach stopped. Reality has been paused for parameter tuning.';
 });
 
@@ -316,7 +306,7 @@ resetButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', 'false');
   autoButton.textContent = 'AUTO APPROACH';
   syncControls();
-  statusBox.textContent = 'Reference view restored. The old plasma texture is back on payroll.';
+  statusBox.textContent = 'Reference view restored. Photons remain unable to leave the premises.';
 });
 
 let frameCounter = 0;
