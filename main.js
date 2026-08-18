@@ -65,8 +65,6 @@ const fragmentShader = /* glsl */`
   uniform float uInclination;
   uniform float uLens;
 
-  #define PI 3.14159265359
-
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
     p += dot(p, p + 45.32);
@@ -167,32 +165,46 @@ const fragmentShader = /* glsl */`
     return vec4(col, clamp(alpha, 0.0, 1.0));
   }
 
-  vec3 wrappedDisk(vec2 p, float horizon, float thickness, float tilt) {
-    vec3 col = vec3(0.0);
+  vec3 wrappedDisk(vec2 p, float horizon, float tilt) {
     vec2 q = rotation(-tilt) * p;
+    float xExtent = horizon * 2.95;
+    float xn = clamp(abs(q.x) / xExtent, 0.0, 1.0);
+    float dome = sqrt(max(0.0, 1.0 - xn * xn));
 
-    float xExtent = horizon * 2.55;
-    float xNorm = clamp(abs(q.x) / xExtent, 0.0, 1.0);
-    float dome = sqrt(max(0.0, 1.0 - xNorm * xNorm));
-
-    float upperY = horizon * (1.00 + dome * 1.10);
-    float lowerY = -horizon * (1.00 + dome * 0.78);
-    float upperW = 0.026 + 0.030 * dome;
-    float lowerW = 0.022 + 0.024 * dome;
+    // The rear half of the SAME disk is gravitationally folded over the shadow.
+    // Both images hug the horizon and merge back into the main disk at the sides.
+    float upperY = horizon * (0.88 + 1.18 * dome);
+    float lowerY = -horizon * (0.86 + 0.93 * dome);
+    float upperW = mix(0.020, 0.062, dome);
+    float lowerW = mix(0.018, 0.050, dome);
 
     float upper = gaussian(q.y - upperY, upperW);
     float lower = gaussian(q.y - lowerY, lowerW);
-    float sideMask = 1.0 - smoothstep(xExtent * 0.82, xExtent, abs(q.x));
+    float sideJoin = smoothstep(1.0, 0.72, xn);
 
-    float stream = q.x * 5.6 + uTime * 0.40;
-    float nu = fbm(vec2(stream, q.y * 20.0 + 2.0));
-    float nl = fbm(vec2(stream * 1.08 - 3.7, q.y * 22.0 - 3.0));
+    // Pull the ends toward the disk plane so the arcs do not float independently.
+    float connectorW = mix(0.070, 0.018, dome);
+    float connector = gaussian(q.y, connectorW) * (1.0 - sideJoin);
+
+    float stream = q.x * 5.7 + uTime * 0.42;
+    float nu = fbm(vec2(stream, q.y * 19.0 + 2.5));
+    float nl = fbm(vec2(stream * 1.07 - 3.4, q.y * 21.0 - 2.8));
+    float nc = fbm(vec2(stream * 0.84 + 7.0, q.y * 26.0));
     float doppler = smoothstep(-xExtent, xExtent, q.x);
 
-    vec3 upperCol = diskPalette(0.88 + 0.12 * nu, doppler);
-    vec3 lowerCol = diskPalette(0.80 + 0.18 * nl, doppler);
-    col += upperCol * upper * sideMask * (0.72 + 0.74 * nu) * uBrightness * 1.18;
-    col += lowerCol * lower * sideMask * (0.54 + 0.58 * nl) * uBrightness * 0.92;
+    vec3 upperCol = diskPalette(0.84 + 0.16 * nu, doppler);
+    vec3 lowerCol = diskPalette(0.78 + 0.18 * nl, doppler);
+    vec3 connectorCol = diskPalette(0.66 + 0.20 * nc, doppler);
+
+    vec3 col = vec3(0.0);
+    col += upperCol * upper * (0.70 + 0.80 * nu) * uBrightness * 1.12;
+    col += lowerCol * lower * (0.54 + 0.64 * nl) * uBrightness * 0.92;
+    col += connectorCol * connector * (0.30 + 0.45 * nc) * uBrightness;
+
+    // Broad dim material behind the bright ridges makes the wrap read as volume, not neon arcs.
+    float upperFog = gaussian(q.y - upperY, upperW * 2.6);
+    float lowerFog = gaussian(q.y - lowerY, lowerW * 2.8);
+    col += vec3(0.32, 0.16, 0.07) * (upperFog * 0.20 + lowerFog * 0.14) * (0.6 + uBrightness * 0.4);
 
     return col;
   }
@@ -221,37 +233,37 @@ const fragmentShader = /* glsl */`
     col += vec3(0.022, 0.027, 0.045) * smoothstep(0.56, 0.92, nebula) * 0.48;
 
     vec4 backDisk = diskMaterial(dp, thickness);
-    col += backDisk.rgb * backDisk.a * 0.72;
+    col += backDisk.rgb * backDisk.a * 0.68;
 
-    // One coherent disk: the rear half is imaged over and under the shadow.
-    col += wrappedDisk(p, horizon, thickness, tilt);
+    // Rear disk wraps continuously over and under the event horizon.
+    col += wrappedDisk(p, horizon, tilt);
 
     float halo = gaussian(r - horizon * 1.34, 0.070);
-    col += vec3(1.0, 0.80, 0.58) * halo * (0.12 + 0.28 * uApproach) * uBrightness;
+    col += vec3(1.0, 0.80, 0.58) * halo * (0.10 + 0.24 * uApproach) * uBrightness;
 
     float horizonMask = 1.0 - smoothstep(horizon * 0.985, horizon * 1.018, r);
     col *= 1.0 - horizonMask;
 
-    // Front half of the same tilted disk crosses the lower face of the shadow.
+    // Front half crosses the lower face, exactly like the reference view.
     vec4 frontDisk = diskMaterial(dp, thickness);
     float foreground = 1.0 - smoothstep(-0.018, 0.070, dp.y);
     frontDisk.a *= foreground;
-    col += frontDisk.rgb * frontDisk.a * 1.06;
+    col += frontDisk.rgb * frontDisk.a * 1.08;
 
-    // Put the black center back on top except where the foreground disk naturally covers its lower edge.
-    float topShadow = horizonMask * smoothstep(-0.020, 0.055, dp.y);
+    // Reassert the central shadow so the viewer always sees the black hole itself.
+    float topShadow = horizonMask * smoothstep(-0.030, 0.050, dp.y);
     col *= 1.0 - topShadow;
 
-    // Thin, broken photon rim. No full white Saturn ring.
+    // Keep only a subtle broken photon rim; the disk should dominate the silhouette.
     float theta = atan(p.y, p.x);
-    float rim = gaussian(r - horizon * 1.014, 0.0045);
-    float rimMask = 0.10 + 0.90 * pow(abs(sin(theta)), 2.2);
-    float breakup = 0.50 + 0.50 * fbm(vec2(theta * 5.5 + uTime * 0.12, r * 43.0));
-    col += vec3(1.0, 0.94, 0.84) * rim * rimMask * breakup * (0.72 + uApproach * 1.3) * uBrightness;
+    float rim = gaussian(r - horizon * 1.012, 0.0038);
+    float rimMask = 0.06 + 0.94 * pow(abs(sin(theta)), 2.6);
+    float breakup = 0.42 + 0.58 * fbm(vec2(theta * 5.6 + uTime * 0.11, r * 45.0));
+    col += vec3(1.0, 0.94, 0.84) * rim * rimMask * breakup * (0.42 + uApproach * 0.9) * uBrightness;
 
     float approachGlare = pow(uApproach, 3.2);
     float planeGlow = gaussian(dp.y, 0.13 + 0.055 * uApproach) * (1.0 - smoothstep(0.20, 1.70, abs(dp.x)));
-    col += vec3(1.0, 0.88, 0.70) * planeGlow * approachGlare * 0.26 * uBrightness;
+    col += vec3(1.0, 0.88, 0.70) * planeGlow * approachGlare * 0.24 * uBrightness;
 
     col = 1.0 - exp(-col * 1.22);
     float vignette = 1.0 - smoothstep(0.62, 1.72, length(uv * vec2(0.68, 1.0)));
