@@ -7,15 +7,13 @@ const statusBox = document.getElementById('statusBox');
 const controls = {
   approach: document.getElementById('approach'),
   brightness: document.getElementById('brightness'),
-  inclination: document.getElementById('inclination'),
-  lensing: document.getElementById('lensing')
+  inclination: document.getElementById('inclination')
 };
 
 const outputs = {
   approach: document.getElementById('approachValue'),
   brightness: document.getElementById('brightnessValue'),
-  inclination: document.getElementById('inclinationValue'),
-  lensing: document.getElementById('lensingValue')
+  inclination: document.getElementById('inclinationValue')
 };
 
 const autoButton = document.getElementById('autoButton');
@@ -42,8 +40,7 @@ const uniforms = {
   uResolution: { value: new THREE.Vector2(1, 1) },
   uApproach: { value: 0.42 },
   uBrightness: { value: 0.375 },
-  uInclination: { value: 76.0 },
-  uLens: { value: 1.0 }
+  uInclination: { value: 76.0 }
 };
 
 const vertexShader = /* glsl */`
@@ -63,7 +60,6 @@ const fragmentShader = /* glsl */`
   uniform float uApproach;
   uniform float uBrightness;
   uniform float uInclination;
-  uniform float uLens;
 
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -218,11 +214,30 @@ const fragmentShader = /* glsl */`
     float incl = clamp((uInclination - 55.0) / 31.0, 0.0, 1.0);
     float thickness = mix(0.30, 0.105, incl);
 
-    // Brighter deep space so the later gravity pass has something obvious to distort.
+    // Background starlight is bent inward and then progressively extinguished as it approaches capture.
+    // The accretion-disk material functions below are untouched.
+    float gravityZone = 1.0 - smoothstep(horizon * 1.08, horizon * 4.20, r);
+    float warp = gravityZone * gravityZone * 0.72;
+    vec2 lightP = p * (1.0 + warp * horizon / max(r, 0.035));
+    float capture = smoothstep(horizon * 1.02, horizon * 2.55, r);
+
     vec3 col = vec3(0.0030, 0.0042, 0.0072);
-    col += starField(p * 0.90) * 1.55;
+    vec3 absorbedStars = starField(lightP * 0.90) * 1.55;
+    absorbedStars *= mix(0.02, 1.0, capture);
+    col += absorbedStars;
+
     float nebula = fbm(p * 0.58 + vec2(-5.3, 7.9));
-    col += vec3(0.055, 0.066, 0.115) * smoothstep(0.51, 0.88, nebula) * 0.92;
+    float nebulaCapture = smoothstep(horizon * 1.05, horizon * 2.85, r);
+    col += vec3(0.055, 0.066, 0.115) * smoothstep(0.51, 0.88, nebula) * 0.92 * mix(0.10, 1.0, nebulaCapture);
+
+    // A thin, moving radial light-pull layer makes the capture direction readable without altering disk texture.
+    float thetaLight = atan(p.y, p.x);
+    float infallZone = smoothstep(horizon * 1.05, horizon * 1.45, r)
+                     * (1.0 - smoothstep(horizon * 3.20, horizon * 4.00, r));
+    float lightFilaments = fbm(vec2(thetaLight * 7.0 - uTime * 0.14, r * 16.0 + uTime * 0.55));
+    lightFilaments = pow(smoothstep(0.64, 0.90, lightFilaments), 2.0);
+    float inwardFade = 1.0 - smoothstep(horizon * 1.08, horizon * 3.50, r);
+    col += vec3(0.68, 0.78, 1.0) * lightFilaments * infallZone * inwardFade * 0.22;
 
     vec4 upper = bentDisk(p, horizon, incl, 1.0);
     vec4 lower = bentDisk(p, horizon, incl, 0.0);
@@ -296,12 +311,10 @@ function syncControls() {
   // new 2.20x = old 0.80x, while the new low end reaches 0 for darker options.
   uniforms.uBrightness.value = Math.max(0, (Number(controls.brightness.value) - 60) / 200);
   uniforms.uInclination.value = Number(controls.inclination.value);
-  uniforms.uLens.value = Number(controls.lensing.value) / 100;
 
   outputs.approach.textContent = `${controls.approach.value}%`;
   outputs.brightness.textContent = `${(Number(controls.brightness.value) / 100).toFixed(2)}×`;
   outputs.inclination.textContent = `${controls.inclination.value}°`;
-  outputs.lensing.textContent = `${uniforms.uLens.value.toFixed(2)}×`;
 }
 
 Object.values(controls).forEach(control => control.addEventListener('input', syncControls));
@@ -322,7 +335,6 @@ resetButton.addEventListener('click', () => {
   controls.approach.value = '42';
   controls.brightness.value = '135';
   controls.inclination.value = '76';
-  controls.lensing.value = '100';
   autoApproach = false;
   autoDirection = 1;
   autoButton.setAttribute('aria-pressed', 'false');
