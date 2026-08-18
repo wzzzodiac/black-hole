@@ -41,7 +41,7 @@ const uniforms = {
   uTime: { value: 0 },
   uResolution: { value: new THREE.Vector2(1, 1) },
   uApproach: { value: 0.42 },
-  uBrightness: { value: 1.35 },
+  uBrightness: { value: 0.675 },
   uInclination: { value: 76.0 },
   uLens: { value: 1.0 }
 };
@@ -292,7 +292,7 @@ resize();
 
 function syncControls() {
   uniforms.uApproach.value = Number(controls.approach.value) / 100;
-  uniforms.uBrightness.value = Number(controls.brightness.value) / 100;
+  uniforms.uBrightness.value = Number(controls.brightness.value) / 200;
   uniforms.uInclination.value = Number(controls.inclination.value);
   uniforms.uLens.value = Number(controls.lensing.value) / 100;
 
