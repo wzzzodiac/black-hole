@@ -117,74 +117,35 @@ const fragmentShader = /* glsl */`
     return col;
   }
 
+  // Texture restored from the earlier v1.4 look the reference screenshot used.
   vec3 diskColor(float heat, float xSide) {
-    vec3 voidBlack = vec3(0.006, 0.007, 0.009);
-    vec3 graphite = vec3(0.030, 0.031, 0.034);
-    vec3 ash = vec3(0.088, 0.081, 0.074);
-    vec3 darkBrown = vec3(0.110, 0.043, 0.018);
-    vec3 umber = vec3(0.225, 0.070, 0.022);
-    vec3 blood = vec3(0.34, 0.030, 0.012);
-    vec3 ember = vec3(0.62, 0.090, 0.018);
-    vec3 copper = vec3(0.92, 0.32, 0.060);
-    vec3 amber = vec3(1.00, 0.64, 0.22);
-    vec3 whiteHot = vec3(1.0, 0.94, 0.80);
-    vec3 c = mix(voidBlack, graphite, smoothstep(0.00, 0.08, heat));
-    c = mix(c, ash, smoothstep(0.05, 0.15, heat));
-    c = mix(c, darkBrown, smoothstep(0.10, 0.24, heat));
-    c = mix(c, umber, smoothstep(0.18, 0.34, heat));
-    c = mix(c, blood, smoothstep(0.29, 0.45, heat));
-    c = mix(c, ember, smoothstep(0.40, 0.59, heat));
-    c = mix(c, copper, smoothstep(0.54, 0.75, heat));
-    c = mix(c, amber, smoothstep(0.72, 0.91, heat));
-    c = mix(c, whiteHot, smoothstep(0.95, 1.0, heat));
-    return c * mix(vec3(1.12, 0.75, 0.57), vec3(0.73, 0.82, 1.04), xSide);
+    vec3 ember = vec3(0.34, 0.055, 0.010);
+    vec3 rust = vec3(0.88, 0.22, 0.035);
+    vec3 gold = vec3(1.00, 0.57, 0.19);
+    vec3 cream = vec3(1.00, 0.87, 0.66);
+    vec3 whiteHot = vec3(1.0, 0.99, 0.965);
+
+    vec3 c = mix(ember, rust, smoothstep(0.04, 0.32, heat));
+    c = mix(c, gold, smoothstep(0.24, 0.56, heat));
+    c = mix(c, cream, smoothstep(0.48, 0.79, heat));
+    c = mix(c, whiteHot, smoothstep(0.75, 1.0, heat));
+    c *= mix(vec3(1.10, 0.80, 0.66), vec3(0.84, 0.94, 1.08), xSide);
+    return c;
   }
 
   vec4 diskSample(float radius, float stream, float xSide, float mask) {
-    float spin = uTime * 0.50;
-    float flow = fbm(vec2(stream * 4.1 + spin, radius * 10.2 - spin * 1.55));
-    float ribbon = fbm(vec2(stream * 18.0 - spin * 3.15, radius * 42.0 + flow * 4.4));
-    float filament = fbm(vec2(stream * 39.0 + spin * 5.2, radius * 104.0 - ribbon * 2.0));
-    float fine = noise(vec2(stream * 72.0 - spin * 7.0, radius * 176.0));
-    float cloudA = fbm(vec2(stream * 1.35 - spin * 0.60, radius * 5.0 + flow * 1.7));
-    float cloudB = fbm(vec2(stream * 0.68 + spin * 0.23 + 8.0, radius * 3.15 - spin * 0.40));
-    float macro = fbm(vec2(stream * 0.40 + spin * 0.10 + 41.0, radius * 2.0 - spin * 0.14));
-    float slate = fbm(vec2(stream * 2.9 - spin * 0.42 + 61.0, radius * 8.5 + cloudB * 2.2));
+    float spin = uTime * 0.47;
+    float flow = fbm(vec2(stream * 3.35 + spin, radius * 8.3 - spin * 1.45));
+    float streak = fbm(vec2(stream * 11.7 - spin * 2.55, radius * 27.5 + flow * 2.55));
+    float fine = noise(vec2(stream * 40.0 + spin * 4.25, radius * 84.0));
+    float turb = clamp(flow * 0.56 + streak * 0.34 + fine * 0.15, 0.0, 1.0);
 
-    float turb = clamp(flow * 0.33 + ribbon * 0.26 + filament * 0.19 + cloudA * 0.10 + macro * 0.07 + slate * 0.09, 0.0, 1.0);
-    float radialHeat = 1.0 - smoothstep(0.27, 1.10, radius);
-    float heat = clamp(radialHeat * 0.64 + turb * 0.22, 0.0, 1.0);
-
-    float density = 1.52 + 1.24 * smoothstep(0.04, 0.70, turb);
-    density *= 1.12 + 0.58 * smoothstep(0.05, 0.72, ribbon);
-    density *= 1.08 + 0.34 * cloudA + 0.28 * macro;
+    float heat = clamp((1.0 - smoothstep(0.34, 1.14, radius)) * 0.88 + turb * 0.34, 0.0, 1.0);
+    float density = 0.68 + 0.78 * smoothstep(0.12, 0.82, turb);
+    density *= 0.78 + 0.44 * smoothstep(0.10, 0.78, streak);
 
     vec3 col = diskColor(heat, xSide);
-
-    float sootBank = smoothstep(0.39, 0.77, cloudB) * (0.48 + 0.52 * cloudA);
-    float graphiteLane = smoothstep(0.43, 0.78, ribbon) * (1.0 - smoothstep(0.82, 0.99, heat));
-    float ashVein = smoothstep(0.46, 0.80, filament) * (1.0 - smoothstep(0.88, 0.99, heat));
-    float slateBank = smoothstep(0.45, 0.76, slate) * (1.0 - smoothstep(0.76, 0.98, heat));
-    float deepStrand = smoothstep(0.59, 0.89, filament) * smoothstep(0.25, 0.73, cloudA);
-    float brownBank = smoothstep(0.38, 0.70, macro) * (1.0 - smoothstep(0.78, 0.98, heat));
-
-    col = mix(col, vec3(0.008, 0.009, 0.011) + col * 0.15, sootBank * 0.62);
-    col = mix(col, vec3(0.034, 0.036, 0.040) + col * 0.28, graphiteLane * 0.50);
-    col = mix(col, vec3(0.095, 0.095, 0.102) + col * 0.36, slateBank * 0.38);
-    col = mix(col, vec3(0.125, 0.116, 0.106) + col * 0.40, ashVein * 0.25);
-    col = mix(col, vec3(0.126, 0.045, 0.018) + col * 0.36, brownBank * 0.30);
-    col *= 1.0 - deepStrand * 0.42;
-
-    float layered = 0.56 + 0.44 * smoothstep(0.15, 0.82, ribbon);
-    layered *= 0.72 + 0.28 * smoothstep(0.18, 0.84, filament);
-    col *= layered;
-    col *= (0.72 + 1.36 * heat + 0.54 * turb) * uBrightness;
-
-    float hotThread = smoothstep(0.90, 0.995, filament) * smoothstep(0.58, 0.98, heat);
-    float spark = smoothstep(0.94, 0.999, fine) * smoothstep(0.55, 0.98, heat);
-    col += vec3(1.0, 0.70, 0.32) * hotThread * 0.22 * uBrightness;
-    col += vec3(1.0, 0.88, 0.62) * spark * 0.07 * uBrightness;
-
+    col *= (0.62 + 1.78 * heat + 0.78 * turb) * uBrightness;
     return vec4(col, clamp(mask * density, 0.0, 1.0));
   }
 
@@ -193,7 +154,6 @@ const fragmentShader = /* glsl */`
     float r = length(q);
     float a = atan(q.y, q.x);
     float inner = smoothstep(0.235, 0.325, r);
-    // v1.10 was too wide. Pull the horizontal disk back to ~70% of that visual radius.
     float outer = 1.0 - smoothstep(0.86, 1.12, r);
     float band = inner * outer;
     float rimNoise = fbm(vec2(a * 4.0 + uTime * 0.08, r * 12.0));
@@ -209,8 +169,6 @@ const fragmentShader = /* glsl */`
     float signY = upper > 0.5 ? 1.0 : -1.0;
     float maxLift = upper > 0.5 ? horizon * mix(1.30, 1.72, inclination) : horizon * mix(1.04, 1.40, inclination);
     float targetY = signY * maxLift * pull;
-
-    // About half the visual mass around the hole, but keep it opaque so it remains the same material as the horizontal disk.
     float width = mix(0.145, 0.102, pull);
     float d = p.y - targetY;
     float core = gauss(d, width);
@@ -227,7 +185,6 @@ const fragmentShader = /* glsl */`
     float direction = p.x < 0.0 ? -1.0 : 1.0;
     float sourceAngle = direction * mix(0.08, 1.68, pull) + p.x * 0.50 + signY * d * 1.24;
     float xSide = smoothstep(-xSpan, xSpan, p.x);
-    // Same shader sample and same color/opacity treatment as the horizontal disk.
     return diskSample(sourceRadius, sourceAngle, xSide, mask);
   }
 
@@ -261,7 +218,6 @@ const fragmentShader = /* glsl */`
 
     vec3 col = vec3(0.0021, 0.0028, 0.0055);
     col += starField(p * 0.90) * 1.56;
-
     float nebula = fbm(p * 0.58 + vec2(-5.3, 7.9));
     col += vec3(0.029, 0.036, 0.068) * smoothstep(0.49, 0.88, nebula) * 0.76;
     float stellarCloud = smoothstep(0.46, 0.78, fbm(vec2(p.x * 0.72 + 31.0, p.y * 1.55 - uTime * 0.012)));
@@ -286,7 +242,7 @@ const fragmentShader = /* glsl */`
     float upperShadow = shadow * smoothstep(-0.038, 0.052, p.y);
     col *= 1.0 - upperShadow;
 
-    // Thick trapped-light rim with a smooth directional reflection. Bottom-right quadrant (270-360 deg) carries the strongest bend.
+    // Same directional reflection as v1.11, now roughly three times thicker.
     float theta = atan(p.y, p.x);
     float orbitNoise = fbm(vec2(theta * 8.0 - uTime * 0.16, r * 72.0));
     float photonRadius = horizon * (1.017 + (orbitNoise - 0.5) * 0.0035);
@@ -294,14 +250,13 @@ const fragmentShader = /* glsl */`
     float qEnd = 1.0 - smoothstep(-0.10, 0.12, theta);
     float brightQuarter = qStart * qEnd;
     float angularWave = 0.5 + 0.5 * sin(theta * 2.0 - 0.35);
-    float thicknessVar = mix(0.0028, 0.0040, angularWave);
-    thicknessVar = mix(thicknessVar, 0.0068, brightQuarter);
+    float thicknessVar = mix(0.0084, 0.0120, angularWave);
+    thicknessVar = mix(thicknessVar, 0.0204, brightQuarter);
     float photonLine = gauss(r - photonRadius, thicknessVar);
     float photonShimmer = 0.62 + 0.38 * (0.5 + 0.5 * sin(theta * 3.0 - uTime * 0.30 + orbitNoise * 4.0));
     float reflection = mix(0.62 + 0.38 * angularWave, 1.35, brightQuarter);
     col += vec3(1.0, 0.91, 0.72) * photonLine * photonShimmer * reflection * (0.48 + 0.24 * uLens) * uBrightness;
 
-    // Slight warm fringe outside the white core to make the light feel bent into the horizon instead of pasted on top.
     float photonFringe = gauss(r - photonRadius * 1.012, thicknessVar * 1.85);
     col += vec3(1.0, 0.50, 0.18) * photonFringe * 0.10 * reflection * uBrightness;
 
@@ -347,7 +302,7 @@ autoButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', String(autoApproach));
   autoButton.textContent = autoApproach ? 'AUTO: RUNNING' : 'AUTO APPROACH';
   statusBox.textContent = autoApproach
-    ? 'Auto approach active. Horizontal disk corrected; photon rim now has anger issues.'
+    ? 'Auto approach active. Vintage texture restored; photon rim has been promoted to management.'
     : 'Auto approach stopped. Reality has been paused for parameter tuning.';
 });
 
@@ -361,7 +316,7 @@ resetButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', 'false');
   autoButton.textContent = 'AUTO APPROACH';
   syncControls();
-  statusBox.textContent = 'Reference view restored. Light is losing the argument with gravity again.';
+  statusBox.textContent = 'Reference view restored. The old plasma texture is back on payroll.';
 });
 
 let frameCounter = 0;
