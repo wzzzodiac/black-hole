@@ -160,7 +160,8 @@ const fragmentShader = /* glsl */`
     float r = length(q);
     float a = atan(q.y, q.x);
     float inner = smoothstep(0.32, 0.41, r);
-    float outer = 1.0 - smoothstep(1.08, 1.40, r);
+    // Geometry only: trim the faint outer plane so it ends with the visible disk instead of spanning the viewport.
+    float outer = 1.0 - smoothstep(0.82, 1.02, r);
     float band = inner * outer;
     float xSide = smoothstep(-1.0, 1.0, q.x / max(r, 0.001));
     return diskSample(r, a, xSide, band);
