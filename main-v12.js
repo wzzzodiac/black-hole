@@ -269,10 +269,6 @@ const fragmentShader = /* glsl */`
     float breakup = 0.44 + 0.56 * fbm(vec2(theta * 6.1 + uTime * 0.10, r * 46.0));
     col += vec3(1.0, 0.91, 0.80) * rim * visibleRim * breakup * 0.34 * uBrightness;
 
-    float late = pow(uApproach, 3.0);
-    float planeGlow = gauss(p.y, 0.17) * (1.0 - smoothstep(0.18, 1.72, abs(p.x)));
-    col += vec3(1.0, 0.90, 0.75) * planeGlow * late * 0.16 * uBrightness;
-
     // Filmic compression; preserve more midtones so stars remain visible.
     col = 1.0 - exp(-col * 1.18);
     float vignette = 1.0 - smoothstep(0.70, 1.80, length(uv * vec2(0.68, 1.0)));
