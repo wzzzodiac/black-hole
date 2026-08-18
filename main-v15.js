@@ -127,44 +127,64 @@ const fragmentShader = /* glsl */`
   }
 
   vec3 diskColor(float heat, float xSide) {
-    vec3 soot = vec3(0.045, 0.012, 0.012);
-    vec3 blood = vec3(0.22, 0.018, 0.010);
-    vec3 ember = vec3(0.58, 0.075, 0.014);
-    vec3 copper = vec3(0.92, 0.30, 0.045);
-    vec3 gold = vec3(1.00, 0.68, 0.25);
-    vec3 whiteHot = vec3(1.0, 0.96, 0.84);
+    vec3 blackSoot = vec3(0.018, 0.009, 0.007);
+    vec3 darkBrown = vec3(0.075, 0.028, 0.014);
+    vec3 umber = vec3(0.18, 0.055, 0.018);
+    vec3 blood = vec3(0.30, 0.025, 0.010);
+    vec3 ember = vec3(0.61, 0.085, 0.015);
+    vec3 copper = vec3(0.90, 0.31, 0.055);
+    vec3 amber = vec3(1.00, 0.62, 0.20);
+    vec3 whiteHot = vec3(1.0, 0.94, 0.79);
 
-    vec3 c = mix(soot, blood, smoothstep(0.02, 0.18, heat));
-    c = mix(c, ember, smoothstep(0.14, 0.42, heat));
-    c = mix(c, copper, smoothstep(0.35, 0.66, heat));
-    c = mix(c, gold, smoothstep(0.62, 0.86, heat));
-    c = mix(c, whiteHot, smoothstep(0.88, 1.0, heat));
+    vec3 c = mix(blackSoot, darkBrown, smoothstep(0.00, 0.11, heat));
+    c = mix(c, umber, smoothstep(0.08, 0.24, heat));
+    c = mix(c, blood, smoothstep(0.18, 0.38, heat));
+    c = mix(c, ember, smoothstep(0.32, 0.56, heat));
+    c = mix(c, copper, smoothstep(0.50, 0.73, heat));
+    c = mix(c, amber, smoothstep(0.69, 0.90, heat));
+    c = mix(c, whiteHot, smoothstep(0.92, 1.0, heat));
 
-    vec3 redSide = vec3(1.18, 0.76, 0.58);
-    vec3 blueSide = vec3(0.72, 0.84, 1.12);
+    vec3 redSide = vec3(1.15, 0.73, 0.53);
+    vec3 blueSide = vec3(0.70, 0.81, 1.07);
     c *= mix(redSide, blueSide, xSide);
     return c;
   }
 
   vec4 diskSample(float radius, float stream, float xSide, float mask) {
-    float spin = uTime * 0.52;
+    float spin = uTime * 0.54;
     float flow = fbm(vec2(stream * 3.55 + spin, radius * 8.8 - spin * 1.62));
     float streak = fbm(vec2(stream * 12.8 - spin * 2.85, radius * 30.0 + flow * 3.1));
     float fine = noise(vec2(stream * 44.0 + spin * 4.8, radius * 92.0));
-    float turb = clamp(flow * 0.54 + streak * 0.35 + fine * 0.17, 0.0, 1.0);
+    float cloudA = fbm(vec2(stream * 1.55 - spin * 0.72, radius * 5.3 + flow * 1.8));
+    float cloudB = fbm(vec2(stream * 0.78 + spin * 0.31 + 8.0, radius * 3.4 - spin * 0.46));
+    float turb = clamp(flow * 0.50 + streak * 0.31 + fine * 0.14 + cloudA * 0.14, 0.0, 1.0);
 
-    float radialHeat = 1.0 - smoothstep(0.34, 1.14, radius);
-    float heat = clamp(radialHeat * 0.78 + turb * 0.30, 0.0, 1.0);
-    float density = 0.82 + 0.92 * smoothstep(0.10, 0.80, turb);
-    density *= 0.84 + 0.50 * smoothstep(0.08, 0.76, streak);
+    float radialHeat = 1.0 - smoothstep(0.32, 1.16, radius);
+    float heat = clamp(radialHeat * 0.70 + turb * 0.27, 0.0, 1.0);
+
+    float density = 0.94 + 0.92 * smoothstep(0.08, 0.78, turb);
+    density *= 0.92 + 0.40 * smoothstep(0.06, 0.74, streak);
+    density *= 0.94 + 0.28 * cloudA;
 
     vec3 col = diskColor(heat, xSide);
-    float darkFilaments = 0.62 + 0.38 * smoothstep(0.24, 0.76, streak);
-    col *= darkFilaments;
-    col *= (0.50 + 1.58 * heat + 0.64 * turb) * uBrightness;
 
-    float hotThread = smoothstep(0.78, 0.98, turb) * smoothstep(0.45, 0.96, heat);
-    col += vec3(1.0, 0.78, 0.42) * hotThread * 0.42 * uBrightness;
+    // Heavy soot/brown cloud banks. They move with the disk instead of sitting on top as a separate texture.
+    float sootCloud = smoothstep(0.48, 0.82, cloudB) * (0.55 + 0.45 * smoothstep(0.24, 0.82, cloudA));
+    float brownCloud = smoothstep(0.38, 0.72, cloudA) * (1.0 - smoothstep(0.70, 0.96, heat));
+    vec3 sootTint = vec3(0.050, 0.020, 0.012);
+    vec3 brownTint = vec3(0.20, 0.070, 0.022);
+    col = mix(col, col * sootTint * 3.2, sootCloud * 0.46);
+    col = mix(col, col * 0.62 + brownTint * 0.14, brownCloud * 0.34);
+
+    float darkFilaments = 0.48 + 0.52 * smoothstep(0.25, 0.78, streak);
+    col *= darkFilaments;
+    col *= (0.46 + 1.48 * heat + 0.58 * turb) * uBrightness;
+
+    // Light is now a detail: narrow trapped filaments inside mostly dark matter.
+    float hotThread = smoothstep(0.84, 0.985, turb) * smoothstep(0.56, 0.97, heat);
+    float thinSpark = smoothstep(0.88, 0.995, fine) * smoothstep(0.48, 0.96, heat);
+    col += vec3(1.0, 0.72, 0.32) * hotThread * 0.30 * uBrightness;
+    col += vec3(1.0, 0.88, 0.62) * thinSpark * 0.12 * uBrightness;
 
     return vec4(col, clamp(mask * density, 0.0, 1.0));
   }
@@ -173,79 +193,82 @@ const fragmentShader = /* glsl */`
     vec2 q = vec2(p.x, p.y / thickness);
     float r = length(q);
     float a = atan(q.y, q.x);
-    float inner = smoothstep(0.30, 0.39, r);
-    float outer = 1.0 - smoothstep(1.10, 1.44, r);
+    float inner = smoothstep(0.28, 0.37, r);
+    float outer = 1.0 - smoothstep(1.12, 1.46, r);
     float band = inner * outer;
     float xSide = smoothstep(-1.0, 1.0, q.x / max(r, 0.001));
     return diskSample(r, a, xSide, band);
   }
 
   vec4 pulledRearDisk(vec2 p, float horizon, float inclination, float upper) {
-    float xSpan = horizon * 3.50;
+    float xSpan = horizon * 3.56;
     float xn = clamp(abs(p.x) / xSpan, 0.0, 1.0);
-    float centerWeight = pow(1.0 - xn, 0.62);
-    float pull = smoothstep(0.005, 0.995, centerWeight);
+    float centerWeight = pow(1.0 - xn, 0.58);
+    float pull = smoothstep(0.002, 0.998, centerWeight);
     float signY = upper > 0.5 ? 1.0 : -1.0;
 
     float maxLift = upper > 0.5
-      ? horizon * mix(1.30, 1.78, inclination)
-      : horizon * mix(1.05, 1.44, inclination);
+      ? horizon * mix(1.26, 1.72, inclination)
+      : horizon * mix(1.02, 1.40, inclination);
 
     float targetY = signY * maxLift * pull;
-    float width = mix(0.142, 0.090, pull);
+    float width = mix(0.158, 0.108, pull);
     float distanceToFlow = p.y - targetY;
 
     float core = gauss(distanceToFlow, width);
-    float innerCenter = targetY * mix(0.22, 0.50, pull);
-    float innerWidth = mix(0.165, 0.125, pull);
-    float inwardSheath = gauss(p.y - innerCenter, innerWidth) * smoothstep(0.05, 0.90, pull);
+    float innerCenter = targetY * mix(0.18, 0.46, pull);
+    float innerWidth = mix(0.190, 0.145, pull);
+    float inwardSheath = gauss(p.y - innerCenter, innerWidth) * smoothstep(0.02, 0.91, pull);
 
-    float secondCenter = targetY * 0.72;
-    float secondSheath = gauss(p.y - secondCenter, width * 1.30) * smoothstep(0.18, 0.94, pull);
+    float secondCenter = targetY * 0.70;
+    float secondSheath = gauss(p.y - secondCenter, width * 1.44) * smoothstep(0.10, 0.95, pull);
+    float thirdCenter = targetY * 0.36;
+    float thirdSheath = gauss(p.y - thirdCenter, width * 1.72) * smoothstep(0.18, 0.92, pull);
 
-    float radialFade = 1.0 - smoothstep(0.90, 1.04, xn);
-    float connector = gauss(p.y, 0.145) * smoothstep(0.61, 1.0, xn);
-    float denseCenter = smoothstep(0.08, 0.90, pull);
-    float mask = max(core * radialFade, connector * 0.96);
-    mask = max(mask, inwardSheath * denseCenter * 0.92);
-    mask = max(mask, secondSheath * denseCenter * 0.66);
+    float radialFade = 1.0 - smoothstep(0.92, 1.045, xn);
+    float connector = gauss(p.y, 0.165) * smoothstep(0.56, 1.0, xn);
+    float denseCenter = smoothstep(0.03, 0.88, pull);
+    float mask = max(core * radialFade, connector);
+    mask = max(mask, inwardSheath * denseCenter * 0.98);
+    mask = max(mask, secondSheath * denseCenter * 0.82);
+    mask = max(mask, thirdSheath * denseCenter * 0.58);
 
-    float sourceRadius = mix(1.22, 0.35, pull);
-    sourceRadius += abs(distanceToFlow) / max(width, 0.001) * 0.014;
-    sourceRadius = clamp(sourceRadius, 0.32, 1.37);
+    float sourceRadius = mix(1.24, 0.33, pull);
+    sourceRadius += abs(distanceToFlow) / max(width, 0.001) * 0.012;
+    sourceRadius = clamp(sourceRadius, 0.30, 1.39);
 
     float direction = p.x < 0.0 ? -1.0 : 1.0;
-    float sourceAngle = direction * mix(0.10, 1.62, pull);
-    sourceAngle += p.x * 0.48;
-    sourceAngle += signY * distanceToFlow * 1.42;
+    float sourceAngle = direction * mix(0.08, 1.66, pull);
+    sourceAngle += p.x * 0.50;
+    sourceAngle += signY * distanceToFlow * 1.34;
 
     float xSide = smoothstep(-xSpan, xSpan, p.x);
     vec4 c = diskSample(sourceRadius, sourceAngle, xSide, mask);
-    c.rgb *= upper > 0.5 ? 0.93 : 0.82;
-    c.a *= upper > 0.5 ? 1.0 : 0.96;
+    c.rgb *= upper > 0.5 ? 0.90 : 0.80;
+    c.a *= upper > 0.5 ? 1.0 : 0.97;
     return c;
   }
 
   vec3 gradeCinematic(vec3 col, vec2 uv, vec2 p, float horizon) {
-    col = 1.0 - exp(-col * 1.10);
-    col = pow(max(col, 0.0), vec3(0.91));
+    col = 1.0 - exp(-col * 1.08);
+    col = pow(max(col, 0.0), vec3(0.94));
 
     float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
     vec3 chroma = col - vec3(luma);
-    col = vec3(luma) + chroma * 1.18;
+    col = vec3(luma) + chroma * 1.20;
 
     float r = length(p);
-    float gravityShade = gauss(r - horizon * 1.36, 0.19);
-    col *= 1.0 - gravityShade * 0.15;
+    float gravityShade = gauss(r - horizon * 1.34, 0.18);
+    col *= 1.0 - gravityShade * 0.18;
 
-    float coreThreat = 1.0 - smoothstep(horizon * 1.7, horizon * 3.1, r);
-    col *= mix(vec3(1.0), vec3(0.82, 0.87, 0.98), coreThreat * 0.20);
+    float coreThreat = 1.0 - smoothstep(horizon * 1.65, horizon * 3.0, r);
+    col *= mix(vec3(1.0), vec3(0.77, 0.81, 0.91), coreThreat * 0.24);
 
-    float warm = smoothstep(0.56, 0.96, max(col.r, max(col.g, col.b)));
-    col *= mix(vec3(0.88, 0.93, 1.06), vec3(1.05, 0.97, 0.88), warm * 0.38);
+    float warm = smoothstep(0.60, 0.97, max(col.r, max(col.g, col.b)));
+    col *= mix(vec3(0.86, 0.90, 1.04), vec3(1.04, 0.95, 0.84), warm * 0.34);
 
-    float vignette = smoothstep(1.48, 0.52, length(uv * vec2(0.70, 1.0)));
-    col *= 0.78 + 0.22 * vignette;
+    float vignette = smoothstep(1.46, 0.50, length(uv * vec2(0.70, 1.0)));
+    col *= 0.74 + 0.26 * vignette;
 
     float grain = hash21(gl_FragCoord.xy + fract(uTime * 19.0)) - 0.5;
     col += grain * 0.008;
@@ -264,12 +287,12 @@ const fragmentShader = /* glsl */`
     float horizon = 0.205;
     float r = length(p);
     float incl = clamp((uInclination - 55.0) / 31.0, 0.0, 1.0);
-    float thickness = mix(0.32, 0.115, incl);
+    float thickness = mix(0.34, 0.125, incl);
 
-    vec3 col = vec3(0.0026, 0.0034, 0.0064);
-    col += starField(p * 0.90) * 1.55;
+    vec3 col = vec3(0.0022, 0.0029, 0.0058);
+    col += starField(p * 0.90) * 1.52;
     float nebula = fbm(p * 0.58 + vec2(-5.3, 7.9));
-    col += vec3(0.032, 0.040, 0.076) * smoothstep(0.49, 0.88, nebula) * 0.82;
+    col += vec3(0.030, 0.037, 0.070) * smoothstep(0.49, 0.88, nebula) * 0.78;
 
     vec4 upper = pulledRearDisk(p, horizon, incl, 1.0);
     vec4 lower = pulledRearDisk(p, horizon, incl, 0.0);
@@ -277,33 +300,41 @@ const fragmentShader = /* glsl */`
     col += lower.rgb * lower.a;
 
     vec4 plane = accretionPlane(p, thickness);
-    col += plane.rgb * plane.a * 1.02;
+    col += plane.rgb * plane.a * 1.04;
 
-    float hotHalo = gauss(r - horizon * 1.22, 0.060);
-    float wideHalo = gauss(r - horizon * 1.38, 0.18);
-    col += vec3(1.0, 0.65, 0.30) * hotHalo * (0.055 + 0.16 * uApproach) * uBrightness;
-    col += vec3(0.22, 0.28, 0.48) * wideHalo * (0.025 + 0.045 * uApproach);
+    // Restrained glow around the hot inner material.
+    float hotHalo = gauss(r - horizon * 1.20, 0.052);
+    float wideHalo = gauss(r - horizon * 1.36, 0.17);
+    col += vec3(1.0, 0.58, 0.24) * hotHalo * (0.040 + 0.12 * uApproach) * uBrightness;
+    col += vec3(0.19, 0.24, 0.42) * wideHalo * (0.022 + 0.040 * uApproach);
 
     float shadow = 1.0 - smoothstep(horizon * 0.985, horizon * 1.020, r);
     col *= 1.0 - shadow;
 
     vec4 front = accretionPlane(p, thickness);
-    float frontMask = 1.0 - smoothstep(-0.060, 0.060, p.y);
+    float frontMask = 1.0 - smoothstep(-0.066, 0.064, p.y);
     front.a *= frontMask;
-    col += front.rgb * front.a * 1.12;
+    col += front.rgb * front.a * 1.14;
 
-    float upperShadow = shadow * smoothstep(-0.034, 0.050, p.y);
+    float upperShadow = shadow * smoothstep(-0.036, 0.052, p.y);
     col *= 1.0 - upperShadow;
 
+    // Light trapped near the photon orbit: thin, turbulent and incomplete instead of a friendly white ring.
     float theta = atan(p.y, p.x);
-    float rim = gauss(r - horizon * 1.012, 0.0028);
-    float visibleRim = smoothstep(-0.14, 0.80, sin(theta));
-    float breakup = 0.42 + 0.58 * fbm(vec2(theta * 6.3 + uTime * 0.11, r * 48.0));
-    col += vec3(1.0, 0.72, 0.42) * rim * visibleRim * breakup * 0.20 * uBrightness;
+    float orbitNoise = fbm(vec2(theta * 7.2 - uTime * 0.24, r * 58.0));
+    float trappedR = horizon * (1.052 + 0.010 * sin(theta * 3.0 + uTime * 0.18));
+    float trapped = gauss(r - trappedR, 0.0027 + orbitNoise * 0.0012);
+    float orbitBreak = smoothstep(0.28, 0.78, orbitNoise);
+    float lensBias = 0.32 + 0.68 * pow(abs(sin(theta)), 1.7);
+    col += vec3(1.0, 0.66, 0.30) * trapped * orbitBreak * lensBias * (0.32 + 0.26 * uLens) * uBrightness;
+
+    // Secondary faint photon trace gives a little depth without becoming the main visual.
+    float ghostOrbit = gauss(r - horizon * 1.078, 0.0055);
+    col += vec3(0.78, 0.45, 0.22) * ghostOrbit * (0.025 + 0.045 * orbitNoise) * uBrightness;
 
     float late = pow(uApproach, 3.0);
-    float planeGlow = gauss(p.y, 0.19) * (1.0 - smoothstep(0.16, 1.70, abs(p.x)));
-    col += vec3(0.95, 0.54, 0.24) * planeGlow * late * 0.11 * uBrightness;
+    float planeGlow = gauss(p.y, 0.20) * (1.0 - smoothstep(0.16, 1.70, abs(p.x)));
+    col += vec3(0.88, 0.46, 0.19) * planeGlow * late * 0.095 * uBrightness;
 
     col = gradeCinematic(col, uv, p, horizon);
     gl_FragColor = vec4(col, 1.0);
@@ -354,7 +385,7 @@ autoButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', String(autoApproach));
   autoButton.textContent = autoApproach ? 'AUTO: RUNNING' : 'AUTO APPROACH';
   statusBox.textContent = autoApproach
-    ? 'Auto approach active. The polite black hole has been terminated.'
+    ? 'Auto approach active. The disk has become a moving wall of hot mud, soot and bad decisions.'
     : 'Auto approach stopped. Reality has been paused for parameter tuning.';
 });
 
@@ -368,7 +399,7 @@ resetButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', 'false');
   autoButton.textContent = 'AUTO APPROACH';
   syncControls();
-  statusBox.textContent = 'Reference view restored. Gargantua has resumed intimidating nearby matter.';
+  statusBox.textContent = 'Reference view restored. Light is once again discovering that escape was never in the contract.';
 });
 
 let frameCounter = 0;
