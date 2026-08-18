@@ -149,38 +149,44 @@ const fragmentShader = /* glsl */`
     float cloudA = fbm(vec2(stream * 1.35 - spin * 0.60, radius * 5.0 + flow * 1.7));
     float cloudB = fbm(vec2(stream * 0.68 + spin * 0.23 + 8.0, radius * 3.15 - spin * 0.40));
     float macro = fbm(vec2(stream * 0.40 + spin * 0.10 + 41.0, radius * 2.0 - spin * 0.14));
+    float grayCloud = fbm(vec2(stream * 0.92 - spin * 0.21 + 67.0, radius * 4.1 + spin * 0.12));
+    float blackCloud = fbm(vec2(stream * 0.31 + spin * 0.08 + 103.0, radius * 1.65 - spin * 0.09));
 
-    float turb = clamp(flow * 0.34 + ribbon * 0.27 + filament * 0.20 + cloudA * 0.11 + macro * 0.08, 0.0, 1.0);
-    float radialHeat = 1.0 - smoothstep(0.27, 1.24, radius);
-    float heat = clamp(radialHeat * 0.65 + turb * 0.23, 0.0, 1.0);
+    float turb = clamp(flow * 0.32 + ribbon * 0.25 + filament * 0.18 + cloudA * 0.10 + macro * 0.07 + grayCloud * 0.05 + blackCloud * 0.04, 0.0, 1.0);
+    float radialHeat = 1.0 - smoothstep(0.25, 1.28, radius);
+    float heat = clamp(radialHeat * 0.64 + turb * 0.22, 0.0, 1.0);
 
-    float density = 1.48 + 1.20 * smoothstep(0.04, 0.70, turb);
-    density *= 1.12 + 0.58 * smoothstep(0.05, 0.72, ribbon);
-    density *= 1.08 + 0.34 * cloudA + 0.28 * macro;
+    float density = 1.78 + 1.42 * smoothstep(0.03, 0.68, turb);
+    density *= 1.20 + 0.72 * smoothstep(0.04, 0.70, ribbon);
+    density *= 1.14 + 0.44 * cloudA + 0.34 * macro;
 
     vec3 col = diskColor(heat, xSide);
 
-    float sootBank = smoothstep(0.42, 0.79, cloudB) * (0.48 + 0.52 * cloudA);
-    float graphiteLane = smoothstep(0.47, 0.80, ribbon) * (1.0 - smoothstep(0.80, 0.99, heat));
-    float ashVein = smoothstep(0.50, 0.82, filament) * (1.0 - smoothstep(0.86, 0.99, heat));
-    float deepStrand = smoothstep(0.62, 0.91, filament) * smoothstep(0.28, 0.75, cloudA);
-    float brownBank = smoothstep(0.40, 0.72, macro) * (1.0 - smoothstep(0.76, 0.98, heat));
+    float sootBank = smoothstep(0.39, 0.76, cloudB) * (0.46 + 0.54 * cloudA);
+    float graphiteLane = smoothstep(0.43, 0.78, ribbon) * (1.0 - smoothstep(0.82, 0.995, heat));
+    float ashVein = smoothstep(0.47, 0.80, filament) * (1.0 - smoothstep(0.88, 0.995, heat));
+    float deepStrand = smoothstep(0.58, 0.88, filament) * smoothstep(0.24, 0.72, cloudA);
+    float brownBank = smoothstep(0.36, 0.69, macro) * (1.0 - smoothstep(0.78, 0.985, heat));
+    float graphiteCloud = smoothstep(0.43, 0.73, grayCloud) * (1.0 - smoothstep(0.83, 0.99, heat));
+    float voidPatch = smoothstep(0.47, 0.74, blackCloud) * smoothstep(0.18, 0.74, macro);
 
-    col = mix(col, vec3(0.010, 0.011, 0.013) + col * 0.17, sootBank * 0.54);
-    col = mix(col, vec3(0.042, 0.043, 0.046) + col * 0.31, graphiteLane * 0.43);
-    col = mix(col, vec3(0.115, 0.105, 0.092) + col * 0.42, ashVein * 0.21);
-    col = mix(col, vec3(0.130, 0.047, 0.019) + col * 0.37, brownBank * 0.30);
-    col *= 1.0 - deepStrand * 0.38;
+    col = mix(col, vec3(0.008, 0.009, 0.011) + col * 0.14, sootBank * 0.62);
+    col = mix(col, vec3(0.036, 0.038, 0.043) + col * 0.28, graphiteLane * 0.50);
+    col = mix(col, vec3(0.092, 0.097, 0.105) + col * 0.34, ashVein * 0.29);
+    col = mix(col, vec3(0.118, 0.043, 0.017) + col * 0.34, brownBank * 0.34);
+    col = mix(col, vec3(0.045, 0.049, 0.057) + col * 0.27, graphiteCloud * 0.44);
+    col = mix(col, vec3(0.004, 0.005, 0.007) + col * 0.10, voidPatch * 0.48);
+    col *= 1.0 - deepStrand * 0.42;
 
-    float layered = 0.56 + 0.44 * smoothstep(0.15, 0.82, ribbon);
-    layered *= 0.72 + 0.28 * smoothstep(0.18, 0.84, filament);
+    float layered = 0.60 + 0.40 * smoothstep(0.12, 0.80, ribbon);
+    layered *= 0.76 + 0.24 * smoothstep(0.16, 0.82, filament);
     col *= layered;
-    col *= (0.72 + 1.36 * heat + 0.54 * turb) * uBrightness;
+    col *= (0.78 + 1.38 * heat + 0.58 * turb) * uBrightness;
 
-    float hotThread = smoothstep(0.90, 0.995, filament) * smoothstep(0.58, 0.98, heat);
-    float spark = smoothstep(0.94, 0.999, fine) * smoothstep(0.55, 0.98, heat);
-    col += vec3(1.0, 0.70, 0.32) * hotThread * 0.22 * uBrightness;
-    col += vec3(1.0, 0.88, 0.62) * spark * 0.07 * uBrightness;
+    float hotThread = smoothstep(0.91, 0.996, filament) * smoothstep(0.60, 0.985, heat);
+    float spark = smoothstep(0.95, 0.999, fine) * smoothstep(0.57, 0.985, heat);
+    col += vec3(1.0, 0.70, 0.32) * hotThread * 0.21 * uBrightness;
+    col += vec3(1.0, 0.88, 0.62) * spark * 0.065 * uBrightness;
 
     return vec4(col, clamp(mask * density, 0.0, 1.0));
   }
@@ -189,11 +195,11 @@ const fragmentShader = /* glsl */`
     vec2 q = vec2(p.x, p.y / thickness);
     float r = length(q);
     float a = atan(q.y, q.x);
-    float inner = smoothstep(0.235, 0.325, r);
-    float outer = 1.0 - smoothstep(1.22, 1.58, r);
+    float inner = smoothstep(0.205, 0.305, r);
+    float outer = 1.0 - smoothstep(1.28, 1.70, r);
     float band = inner * outer;
     float rimNoise = fbm(vec2(a * 4.0 + uTime * 0.08, r * 12.0));
-    band *= 0.90 + 0.10 * rimNoise;
+    band *= 0.92 + 0.08 * rimNoise;
     float xSide = smoothstep(-1.0, 1.0, q.x / max(r, 0.001));
     return diskSample(r, a, xSide, band);
   }
@@ -256,7 +262,7 @@ const fragmentShader = /* glsl */`
     float horizon = 0.205;
     float r = length(p);
     float incl = clamp((uInclination - 55.0) / 31.0, 0.0, 1.0);
-    float thickness = mix(0.40, 0.155, incl);
+    float thickness = mix(0.58, 0.255, incl);
 
     vec3 col = vec3(0.0021, 0.0028, 0.0055);
     col += starField(p * 0.90) * 1.56;
@@ -272,25 +278,41 @@ const fragmentShader = /* glsl */`
     col += upper.rgb * upper.a;
     col += lower.rgb * lower.a;
 
+    // The horizontal disk is the star now: thicker, wider and much more opaque.
     vec4 plane = accretionPlane(p, thickness);
-    col += plane.rgb * plane.a * 1.12;
+    col += plane.rgb * plane.a * 1.28;
 
     float shadow = 1.0 - smoothstep(horizon * 0.988, horizon * 1.014, r);
     col *= 1.0 - shadow;
 
     vec4 front = accretionPlane(p, thickness);
-    front.a *= 1.0 - smoothstep(-0.075, 0.075, p.y);
-    col += front.rgb * front.a * 1.20;
+    front.a *= 1.0 - smoothstep(-0.105, 0.105, p.y);
+    col += front.rgb * front.a * 1.36;
 
     float upperShadow = shadow * smoothstep(-0.038, 0.052, p.y);
     col *= 1.0 - upperShadow;
 
+    // Photon rim with a smooth reflected highlight: strongest from 270° to 360°,
+    // while the rest of the orbit varies continuously instead of changing abruptly.
+    const float PI = 3.14159265359;
+    const float TAU = 6.28318530718;
     float theta = atan(p.y, p.x);
+    float phi = mod(theta + TAU, TAU);
+    float sectorStart = 1.5 * PI;
+    float enterSector = smoothstep(sectorStart - 0.30, sectorStart + 0.10, phi);
+    float exitSector = 1.0 - smoothstep(TAU - 0.28, TAU - 0.03, phi);
+    float brightSector = enterSector * exitSector;
+    float broadReflection = 0.5 + 0.5 * cos(phi - 1.86 * PI);
+    broadReflection = pow(max(broadReflection, 0.0), 2.2);
+
     float orbitNoise = fbm(vec2(theta * 8.0 - uTime * 0.16, r * 72.0));
     float photonRadius = horizon * (1.016 + (orbitNoise - 0.5) * 0.003);
-    float photonLine = gauss(r - photonRadius, 0.00135);
-    float photonShimmer = 0.82 + 0.18 * sin(theta * 7.0 - uTime * 0.42 + orbitNoise * 5.0);
-    col += vec3(1.0, 0.82, 0.55) * photonLine * photonShimmer * (0.42 + 0.20 * uLens) * uBrightness;
+    float widthBase = 0.00175 + 0.00065 * (0.5 + 0.5 * sin(theta * 2.0 - uTime * 0.22));
+    float photonWidth = widthBase + brightSector * 0.00320 + broadReflection * 0.00105;
+    float photonLine = gauss(r - photonRadius, photonWidth);
+    float photonIntensity = 0.36 + brightSector * 0.86 + broadReflection * 0.32;
+    photonIntensity *= 0.90 + 0.10 * sin(theta * 5.0 - uTime * 0.30 + orbitNoise * 4.0);
+    col += vec3(1.0, 0.84, 0.60) * photonLine * photonIntensity * (0.42 + 0.20 * uLens) * uBrightness;
 
     float innerGlow = gauss(r - horizon * 1.22, 0.060);
     col += vec3(0.78, 0.36, 0.14) * innerGlow * (0.028 + 0.080 * uApproach) * uBrightness;
@@ -334,7 +356,7 @@ autoButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', String(autoApproach));
   autoButton.textContent = autoApproach ? 'AUTO: RUNNING' : 'AUTO APPROACH';
   statusBox.textContent = autoApproach
-    ? 'Auto approach active. Play-Doh privileges revoked; layered plasma only.'
+    ? 'Auto approach active. Horizontal disk density has been upgraded from decorative fire to industrial hazard.'
     : 'Auto approach stopped. Reality has been paused for parameter tuning.';
 });
 
@@ -348,7 +370,7 @@ resetButton.addEventListener('click', () => {
   autoButton.setAttribute('aria-pressed', 'false');
   autoButton.textContent = 'AUTO APPROACH';
   syncControls();
-  statusBox.textContent = 'Reference view restored. Matter has returned to its legally questionable orbit.';
+  statusBox.textContent = 'Reference view restored. The photon ring has resumed showing off selectively.';
 });
 
 let frameCounter = 0;
