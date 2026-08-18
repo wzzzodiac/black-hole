@@ -16,13 +16,13 @@ V1 is the finished **Three.js + GLSL / WebGL** renderer. It deliberately favors 
 
 Open `v1.html`, or choose V1 from `index.html`.
 
-## Version 2 — WebGPU geodesic alpha
+## Version 2 — WebGPU geodesic beta
 
 V2 is a separate clean-room **WebGPU + WGSL compute** experiment. Its architecture is inspired by the public [`kavan010/black_hole`](https://github.com/kavan010/black_hole) project: launch one light ray per output pixel, integrate the trajectory on the GPU, test event-horizon capture, test equatorial accretion-disk crossings, and shade escaped rays as background light.
 
 The upstream project is a native C++17 / OpenGL 4.3 application using GLFW/GLEW and a GLSL compute shader. That code cannot run directly on GitHub Pages/WebGPU. The V2 implementation therefore rewrites the approach independently for the browser in JavaScript + WGSL. No upstream source code is copied into this repository.
 
-### V2 alpha pipeline
+### V2 beta pipeline
 
 ```text
 browser camera
@@ -41,7 +41,7 @@ storage texture
 fullscreen WebGPU presentation pass
 ```
 
-The alpha uses dimensionless units with `r_s = 1` and a Schwarzschild-inspired null-ray bending equation. It is intentionally lower resolution and lower step count than an offline scientific renderer so it can remain interactive in a browser. It is not yet a research-grade GR solver.
+The beta uses dimensionless units with `r_s = 1` and a Schwarzschild-inspired null-ray bending equation. It is intentionally lower resolution and lower step count than an offline scientific renderer so it can remain interactive in a browser. It is not a research-grade GR solver.
 
 ### V2 controls
 
@@ -51,7 +51,8 @@ The alpha uses dimensionless units with `r_s = 1` and a Schwarzschild-inspired n
 - **Geodesic budget** — increases/decreases integration steps per ray.
 - **Drag viewport** — orbit camera around the black hole.
 - **Mouse wheel** — adjust approach.
-- **Refine frame** — forces a higher-step render after interactive movement.
+- **Auto approach** — continuously traverses the full approach range using reduced interactive resolution/steps.
+- **Refine frame** — forces a higher-step render; stopping auto approach also refines automatically.
 
 V2 requires a browser/device with WebGPU support. If WebGPU is unavailable, V1 remains usable.
 
@@ -61,7 +62,7 @@ V2 requires a browser/device with WebGPU support. If WebGPU is unavailable, V1 r
 index.html     version selector
 v1.html        frozen V1 renderer page
 main-v12.js    V1 renderer
-v2.html        V2 alpha page
+v2.html        V2 beta page
 v2.js          WebGPU/WGSL geodesic renderer
 style.css      shared UI styling
 ```
@@ -69,4 +70,4 @@ style.css      shared UI styling
 ## Status
 
 - **V1:** final/frozen.
-- **V2:** alpha 0.1 — architecture and light-path pipeline first; visual refinement comes later.
+- **V2:** beta 0.2 — geodesic rendering plus adaptive continuous motion; visual/physics refinement can continue from here.

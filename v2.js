@@ -19,6 +19,7 @@ const outputs = {
 
 const resetButton = document.getElementById('resetButton');
 const renderButton = document.getElementById('renderButton');
+const autoButton = document.getElementById('autoButton');
 
 const canvas = document.createElement('canvas');
 canvas.setAttribute('aria-hidden', 'true');
@@ -302,6 +303,9 @@ let pointerX = 0;
 let pointerY = 0;
 let renderQueued = false;
 let renderSerial = 0;
+let autoApproach = false;
+let autoDirection = 1;
+let lastAutoTime = 0;
 
 function normalize(v) {
   const l = Math.hypot(v[0], v[1], v[2]) || 1;
@@ -337,10 +341,14 @@ function syncOutputs() {
   outputs.steps.textContent = controls.steps.value;
 }
 
+function isMoving() {
+  return dragging || autoApproach;
+}
+
 function ensureTargets() {
   const cssW = Math.max(1, host.clientWidth);
   const cssH = Math.max(1, host.clientHeight);
-  const pixelBudget = dragging ? 52000 : 90000;
+  const pixelBudget = isMoving() ? 52000 : 90000;
   const scale = Math.min(1, Math.sqrt(pixelBudget / (cssW * cssH)));
   const nextW = Math.max(160, Math.floor(cssW * scale / 8) * 8);
   const nextH = Math.max(120, Math.floor(cssH * scale / 8) * 8);
@@ -376,7 +384,7 @@ function ensureTargets() {
 function makeParams() {
   const camera = getCamera();
   const requestedSteps = Number(controls.steps.value);
-  const steps = dragging ? Math.min(requestedSteps, 180) : requestedSteps;
+  const steps = isMoving() ? Math.min(requestedSteps, 180) : requestedSteps;
   const tanHalfFov = Math.tan(48 * Math.PI / 360);
   const aspect = width / Math.max(height, 1);
   const rs = 1.0;
@@ -421,8 +429,8 @@ async function renderFrame(forceRefine = false) {
   const started = performance.now();
   device.queue.submit([encoder.finish()]);
   gpuReadout.textContent = `GPU: tracing ${width}×${height} // ${Math.round(params[2])} steps`;
-  statusBox.textContent = dragging
-    ? 'Interactive preview: reduced resolution and step budget while the camera moves.'
+  statusBox.textContent = isMoving()
+    ? 'Motion preview: reduced resolution and step budget while the camera is moving.'
     : 'Tracing curved light paths. The disk shape comes from ray intersections, not a manually bent mesh.';
 
   try {
@@ -432,7 +440,9 @@ async function renderFrame(forceRefine = false) {
       gpuReadout.textContent = `GPU: ${width}×${height} // ${Math.round(params[2])} steps // ${ms} ms`;
       statusBox.textContent = forceRefine
         ? `Refined frame complete in ~${ms} ms.`
-        : `Frame complete in ~${ms} ms. Drag the viewport to orbit or increase the geodesic budget for cleaner bending.`;
+        : autoApproach
+          ? `Auto approach running at interactive quality // ~${ms} ms per frame.`
+          : `Frame complete in ~${ms} ms. Drag the viewport to orbit or increase the geodesic budget for cleaner bending.`;
     }
   } catch (error) {
     statusBox.textContent = `GPU submission failed: ${error.message}`;
@@ -448,11 +458,24 @@ function queueRender(forceRefine = false) {
   });
 }
 
+async function autoTick(now) {
+  if (!autoApproach) return;
+  const dt = lastAutoTime ? Math.min(0.08, (now - lastAutoTime) / 1000) : 0;
+  lastAutoTime = now;
+  let value = Number(controls.approach.value) + autoDirection * dt * 7.5;
+  if (value >= 100) { value = 100; autoDirection = -1; }
+  if (value <= 0) { value = 0; autoDirection = 1; }
+  controls.approach.value = String(value);
+  syncOutputs();
+  await renderFrame(false);
+  if (autoApproach) requestAnimationFrame(autoTick);
+}
+
 Object.values(controls).forEach(control => {
   control.addEventListener('input', () => {
     if (control === controls.inclination) elevation = Number(controls.inclination.value) * Math.PI / 180;
     syncOutputs();
-    queueRender(false);
+    if (!autoApproach) queueRender(false);
   });
 });
 
@@ -474,7 +497,7 @@ host.addEventListener('pointermove', event => {
   elevation = Math.max(0.12, Math.min(1.535, elevation - dy * 0.0065));
   controls.inclination.value = String(Math.round(elevation * 180 / Math.PI));
   syncOutputs();
-  queueRender(false);
+  if (!autoApproach) queueRender(false);
 });
 
 function endDrag(event) {
@@ -482,7 +505,7 @@ function endDrag(event) {
   dragging = false;
   host.classList.remove('dragging');
   try { host.releasePointerCapture(event.pointerId); } catch {}
-  queueRender(true);
+  if (!autoApproach) queueRender(true);
 }
 
 host.addEventListener('pointerup', endDrag);
@@ -493,10 +516,27 @@ host.addEventListener('wheel', event => {
   const delta = Math.sign(event.deltaY) * 3;
   controls.approach.value = String(Math.max(0, Math.min(100, Number(controls.approach.value) + delta)));
   syncOutputs();
-  queueRender(false);
+  if (!autoApproach) queueRender(false);
 }, { passive: false });
 
+autoButton.addEventListener('click', () => {
+  autoApproach = !autoApproach;
+  autoButton.setAttribute('aria-pressed', String(autoApproach));
+  autoButton.textContent = autoApproach ? 'AUTO: RUNNING' : 'AUTO APPROACH';
+  if (autoApproach) {
+    lastAutoTime = 0;
+    requestAnimationFrame(autoTick);
+  } else {
+    queueRender(true);
+  }
+});
+
 resetButton.addEventListener('click', () => {
+  autoApproach = false;
+  autoDirection = 1;
+  lastAutoTime = 0;
+  autoButton.setAttribute('aria-pressed', 'false');
+  autoButton.textContent = 'AUTO APPROACH';
   controls.approach.value = '22';
   controls.inclination.value = '68';
   controls.brightness.value = '110';
@@ -509,7 +549,9 @@ resetButton.addEventListener('click', () => {
 
 renderButton.addEventListener('click', () => queueRender(true));
 
-const resizeObserver = new ResizeObserver(() => queueRender(false));
+const resizeObserver = new ResizeObserver(() => {
+  if (!autoApproach) queueRender(false);
+});
 resizeObserver.observe(host);
 
 syncOutputs();
