@@ -3,3 +3,38 @@
 @media(max-width:1050px){.lab-grid{grid-template-columns:1fr}.controls-card{position:static}.scene{aspect-ratio:16/11}.notes{grid-template-columns:1fr}}
 @media(max-width:680px){.shell{width:min(100% - 16px,1460px);padding-top:18px}.hero{flex-direction:column}.github-link{align-self:flex-start}.scene{aspect-ratio:4/5}.viewport-head{flex-direction:column;gap:3px}.button-grid,.telemetry{grid-template-columns:1fr 1fr}.notes{padding:14px}.notes h2{font-size:24px}footer{flex-direction:column;gap:5px}}
 @media(max-width:420px){.button-grid,.telemetry{grid-template-columns:1fr}.controls-card{padding:13px}}
+
+/* V1 cinematic instrument. Scoped: the selector and independent V2 keep their styling. */
+body.cinematic-lab{background:#080a0d;color:#ecebe7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;--muted:#92989f;--accent:#e7b979;--line:#292d31}
+.cinematic-lab .instrument-header{height:66px;padding:0 36px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.cinematic-lab a{color:inherit;text-decoration:none}.cinematic-lab a:hover{color:var(--accent)}
+.cinematic-lab .wordmark{font-size:12px;font-weight:700;letter-spacing:.13em}.cinematic-lab .wordmark span{color:var(--accent);padding:0 12px}
+.cinematic-lab nav{display:flex;gap:30px;font:11px ui-monospace,Consolas,monospace;color:var(--muted)}
+.cinematic-lab .observation{position:relative;height:clamp(440px,69vh,920px);min-height:440px;border-bottom:1px solid var(--line);background:#010203}
+.cinematic-lab .scene{position:absolute;inset:0;height:100%;width:100%;aspect-ratio:auto;border:0}
+.cinematic-lab .observation-heading{position:absolute;top:33px;left:36px;pointer-events:none}
+.cinematic-lab .micro{font:10px ui-monospace,Consolas,monospace;letter-spacing:.15em;color:var(--muted);margin:0 0 12px}.cinematic-lab .micro span{color:var(--accent);margin:0 9px}
+.cinematic-lab h1{font-size:38px;letter-spacing:-.055em;font-weight:500;line-height:1.1}.cinematic-lab h1 span{color:var(--accent)}
+.cinematic-lab .scene-caption{color:var(--muted);font-size:12px;margin:9px 0}
+.cinematic-lab .frame-status{position:absolute;top:37px;right:36px;display:flex;gap:10px;align-items:center;font:10px ui-monospace,Consolas,monospace;color:var(--muted)}
+.cinematic-lab .signal-dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.cinematic-lab #fpsReadout{margin-left:12px;color:#697079}
+.cinematic-lab .scene-footer{position:absolute;bottom:23px;left:36px;right:36px;display:flex;justify-content:space-between;color:var(--muted);font:9px ui-monospace,Consolas,monospace;letter-spacing:.15em;pointer-events:none}
+.cinematic-lab .console{display:grid;grid-template-columns:205px minmax(0,1fr) 182px;gap:36px;padding:26px 36px 28px;align-items:start;border-bottom:1px solid var(--line)}
+.cinematic-lab .console-title p{font-size:23px;font-weight:400;letter-spacing:-.04em;margin:0 0 8px}.cinematic-lab #statusBox{display:block;font-size:11px;line-height:1.6;color:var(--muted);max-width:195px}
+.cinematic-lab .parameter-controls{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:28px;padding-top:5px}
+.cinematic-lab .parameter{display:grid;gap:13px;min-width:0}.cinematic-lab .parameter>span{display:flex;justify-content:space-between;font-size:12px;gap:10px}.cinematic-lab output{color:var(--accent);font:12px ui-monospace,Consolas,monospace}
+.cinematic-lab input[type=range]{width:100%;height:26px;margin:0;cursor:pointer;accent-color:var(--accent);background:transparent}
+.cinematic-lab .parameter small{display:flex;justify-content:space-between;font:9px ui-monospace,Consolas,monospace;color:var(--muted)}
+.cinematic-lab .transport{display:grid;gap:7px}.cinematic-lab button{min-height:38px;border:1px solid #3d4145;font:11px ui-monospace,Consolas,monospace;letter-spacing:0;background:transparent;color:#ecebe7;padding:8px 10px}
+.cinematic-lab .primary-control{background:var(--accent);color:#191511;border-color:var(--accent)}.cinematic-lab button:hover{border-color:var(--accent)}.cinematic-lab button[aria-pressed=true]{background:#e7b979;color:#191511}
+.cinematic-lab .transport-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}.cinematic-lab .quality-control{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font:9px ui-monospace,Consolas,monospace}
+.cinematic-lab select{background:#080a0d;color:#d0d1d1;border:0;padding:5px;font:11px ui-monospace,Consolas,monospace;min-height:30px}
+.cinematic-lab :focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.cinematic-lab .model-note{margin:0 36px;border-bottom:1px solid var(--line)}.cinematic-lab summary{list-style:none;display:flex;justify-content:space-between;gap:20px;padding:21px 0;cursor:pointer;font:10px ui-monospace,Consolas,monospace;color:var(--muted)}.cinematic-lab summary::-webkit-details-marker{display:none}.cinematic-lab summary b{margin-left:18px;color:var(--accent)}.cinematic-lab .model-note p{font-size:13px;line-height:1.8;color:var(--muted);max-width:900px;margin:0 0 25px}.cinematic-lab .model-note a{text-decoration:underline}
+.cinematic-lab .instrument-footer{padding:20px 36px 25px;font:9px ui-monospace,Consolas,monospace;color:#777f87;display:flex;justify-content:space-between}
+.cinematic-lab .scene-error{position:absolute;top:48%;left:15%;width:70%;padding:24px;border:1px solid #5d513e;background:#080a0d;color:var(--accent);font-size:14px;line-height:1.8;text-align:center}.cinematic-lab .scene-error[hidden]{display:none}
+@media(min-width:1800px){.cinematic-lab .console{grid-template-columns:250px minmax(0,1fr) 230px;gap:60px}.cinematic-lab .parameter-controls{gap:65px}}
+@media(max-width:1100px){.cinematic-lab .console{grid-template-columns:minmax(0,1fr) 180px;gap:20px}.cinematic-lab .console-title{grid-column:1/-1;display:flex;align-items:center;gap:20px}.cinematic-lab .console-title .micro{margin:0}.cinematic-lab .console-title p{margin:0;font-size:18px}.cinematic-lab #statusBox{max-width:none;margin-left:auto}.cinematic-lab .parameter-controls{gap:20px}}
+@media(max-width:680px){.cinematic-lab .instrument-header{padding:0 20px;height:56px}.cinematic-lab nav{gap:16px;font-size:10px}.cinematic-lab .wordmark{font-size:10px}.cinematic-lab .wordmark span{padding:0 5px}.cinematic-lab .observation{height:65svh;min-height:440px;max-height:720px}.cinematic-lab .observation-heading{top:24px;left:20px}.cinematic-lab h1{font-size:33px}.cinematic-lab .micro{font-size:8px;letter-spacing:.1em}.cinematic-lab .frame-status{top:auto;bottom:48px;left:20px;right:auto;font-size:9px}.cinematic-lab #fpsReadout{font-size:9px}.cinematic-lab .scene-footer{left:20px;right:20px;bottom:23px;font-size:7px;letter-spacing:.06em}.cinematic-lab .console{display:block;padding:22px 20px}.cinematic-lab .console-title{display:block;margin-bottom:24px}.cinematic-lab .console-title p{font-size:24px;margin:7px 0}.cinematic-lab #statusBox{font-size:10px}.cinematic-lab .parameter-controls{grid-template-columns:1fr 1fr;gap:22px}.cinematic-lab .parameter:first-child{grid-column:1/-1}.cinematic-lab .parameter{gap:5px}.cinematic-lab .parameter>span{font-size:11px}.cinematic-lab input[type=range]{height:40px}.cinematic-lab .transport{margin-top:25px;grid-template-columns:1fr 1fr;gap:10px}.cinematic-lab button{min-height:44px}.cinematic-lab .quality-control{grid-column:1/-1}.cinematic-lab select{min-height:40px}.cinematic-lab .model-note{margin:0 20px}.cinematic-lab summary{font-size:8px;gap:18px;line-height:1.8}.cinematic-lab summary b{margin-left:4px}.cinematic-lab .instrument-footer{padding:20px;font-size:8px;gap:8px}}
+@media(prefers-reduced-motion:reduce){.cinematic-lab *{scroll-behavior:auto}}

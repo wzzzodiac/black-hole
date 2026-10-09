@@ -2,9 +2,9 @@
 
 A browser black-hole lab with two independent renderers.
 
-## Version 1 — Cinematic / final
+## Version 1 — Cinematic / evolved
 
-V1 is the finished **Three.js + GLSL / WebGL** renderer. It deliberately favors cinematic readability over exact relativity.
+V1 is the **Three.js + GLSL / WebGL** renderer. It deliberately favors cinematic readability over exact relativity.
 
 - Procedural star field and accretion material
 - Stylized upper/lower gravitationally lensed disk images
@@ -60,8 +60,9 @@ V2 requires a browser/device with WebGPU support. If WebGPU is unavailable, V1 r
 
 ```text
 index.html     version selector
-v1.html        frozen V1 renderer page
-main-v12.js    V1 renderer
+v1.html        V1 observation console
+main-v12.js    V1 lab controller
+black-hole-renderer.js reusable V1 GPU renderer
 v2.html        V2 beta page
 v2.js          WebGPU/WGSL geodesic renderer
 style.css      shared UI styling
@@ -69,5 +70,14 @@ style.css      shared UI styling
 
 ## Status
 
-- **V1:** final/frozen.
+- **V1:** cinematic evolution under visual review; no deployment as part of this change.
 - **V2:** beta 0.2 — geodesic rendering plus adaptive continuous motion; visual/physics refinement can continue from here.
+
+## Visual review and local preview
+
+Run `python -m http.server 8000 --bind 127.0.0.1` from this repository, then open
+[the lab](http://127.0.0.1:8000/v1.html) or [the before/after review](http://127.0.0.1:8000/docs/review.html).
+No build, package install or external services are required. Do not use `file://` for ES modules.
+
+See [visual review](docs/visual-review.md) for comparisons, measurements and limitations,
+and [renderer contract](docs/renderer-contract.md) for the No Hope integration.
