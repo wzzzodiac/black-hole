@@ -1,0 +1,153 @@
+{
+  "errors": [],
+  "requests": [],
+  "checks": [
+    "deterministic before/after: same size, time=12s, approach 0/50/100",
+    "desktop: no horizontal overflow",
+    "desktop: approach, brightness and inclination endpoints render without errors",
+    "desktop: reset restores all controls",
+    "desktop: auto approach advances",
+    "desktop: pause holds approach",
+    "desktop: resume advances",
+    "desktop: resize 844x390",
+    "desktop: resize 768x1024",
+    "desktop: resize 360x800",
+    "desktop: resize 1920x1080",
+    "mobile: no horizontal overflow",
+    "mobile: approach, brightness and inclination endpoints render without errors",
+    "mobile: reset restores all controls",
+    "mobile: auto approach advances",
+    "mobile: pause holds approach",
+    "mobile: resume advances",
+    "mobile: real touch input changes slider",
+    "mobile: resize 844x390",
+    "mobile: resize 768x1024",
+    "mobile: resize 360x800",
+    "mobile: resize 1920x1080",
+    "reduced motion defaults to held",
+    "lost context skips rendering",
+    "restored context renders",
+    "dispose is idempotent and stops rendering",
+    "standard: no WebGL frames",
+    "hardcore preserved",
+    "No Hope asteroids spawn",
+    "mouse controls ship",
+    "No Hope pause freezes simulation and GPU",
+    "No Hope progression, score, no repairs and HUD",
+    "consumption trigger",
+    "consumption completes",
+    "retry resets and clears mission",
+    "reset cancels stale consumption timer",
+    "return to standard hides WebGL",
+    "ordinary No Hope collision remains fatal",
+    "No Hope touch drag and release",
+    "lab WebGL-unavailable message and disabled controls",
+    "game WebGL-unavailable restores original 2D fallback",
+    "no unexpected console/page errors",
+    "no missing resources"
+  ],
+  "performance": [
+    {
+      "label": "desktop/balanced",
+      "frames": 384,
+      "fps": 119.99250046872065,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 8.5,
+      "resolution": [
+        1440,
+        689
+      ],
+      "dpr": 1
+    },
+    {
+      "label": "desktop/high",
+      "frames": 384,
+      "fps": 119.99999999999999,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 8.5,
+      "resolution": [
+        1440,
+        689
+      ],
+      "dpr": 1
+    },
+    {
+      "label": "desktop/low",
+      "frames": 384,
+      "fps": 119.99250046872068,
+      "medianMs": 8.300000000001091,
+      "p95Ms": 8.5,
+      "resolution": [
+        1080,
+        517
+      ],
+      "dpr": 1
+    },
+    {
+      "label": "mobile/balanced",
+      "frames": 384,
+      "fps": 119.99999999999999,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 8.5,
+      "resolution": [
+        488,
+        685
+      ],
+      "dpr": 3
+    },
+    {
+      "label": "mobile/high",
+      "frames": 384,
+      "fps": 119.99625011718383,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 8.5,
+      "resolution": [
+        780,
+        1096
+      ],
+      "dpr": 3
+    },
+    {
+      "label": "mobile/low",
+      "frames": 384,
+      "fps": 119.99625011718383,
+      "medianMs": 8.300000000001091,
+      "p95Ms": 8.5,
+      "resolution": [
+        293,
+        411
+      ],
+      "dpr": 3
+    },
+    {
+      "label": "No Hope/desktop",
+      "frames": 384,
+      "fps": 119.9925004687207,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 8.5,
+      "resolution": [
+        994,
+        684
+      ],
+      "dpr": 1
+    },
+    {
+      "label": "No Hope/mobile",
+      "frames": 384,
+      "fps": 119.99999999999989,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 8.5,
+      "resolution": [
+        445,
+        306
+      ],
+      "dpr": 3
+    }
+  ],
+  "browser": "154.0.4258.62",
+  "gpu": {
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 SUPER (0x00002783) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "v2": "Frame complete in ~124 ms. Drag the viewport to orbit or increase the geodesic budget for cleaner bending."
+}
